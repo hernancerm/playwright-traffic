@@ -1,7 +1,8 @@
 import { reasonPhrase } from './status.ts';
+import type { Headers } from './headers.ts';
 import type { Request } from './request.ts';
 
-export type Headers = Record<string, string[]>;
+export type { Headers };
 
 export interface Report {
   stats: Record<string, unknown>;
@@ -56,8 +57,8 @@ function renderRequestBody(request: Request | undefined): string | undefined {
 }
 
 function renderHeaders(headers: Headers): string {
-  // header_json lowercases names and always wraps values in an array, because
-  // a header may legitimately repeat (Set-Cookie, Link).
+  // Names arrive lowercased and values in an array, because a header may
+  // legitimately repeat (Set-Cookie, Link). See parseHeaderDump.
   const lines = Object.entries(headers).flatMap(([name, values]) =>
     values.map((value) => `${name}: ${value}`)
   );

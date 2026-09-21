@@ -1,4 +1,5 @@
-import { type Headers, render } from './src/render.ts';
+import { render } from './src/render.ts';
+import { type Headers, parseHeaderDump } from './src/headers.ts';
 import { withoutLinkerVars } from './src/env.ts';
 import { parseRequest } from './src/request.ts';
 import { tokenize } from './src/tokenize.ts';
@@ -52,10 +53,11 @@ async function main(): Promise<number> {
   // A random marker keeps the split honest even when a response body happens to
   // contain the literal separator text.
   const marker = 'CURLR' + crypto.randomUUID().replaceAll('-', '');
-  const writeOut = `\\n${marker}\\n%{header_json}\\n${marker}\\n%{json}`;
+  const writeOut = `\\n${marker}\\n%{json}`;
 
-  // curl has no write-out variable for the headers as they came off the wire, so
-  // --dump-header takes them to a file, out of the way of the body on stdout.
+  // --dump-header takes the headers to a file, out of the way of the body on
+  // stdout. It is also where the report reads them from: `%{header_json}` would
+  // parse them for us but only exists from curl 7.83.
   const headerFile = await Deno.makeTempFile({ prefix: 'curlr-' });
   const requestArgs = curlArgs(args);
 
@@ -89,19 +91,18 @@ async function main(): Promise<number> {
 
   const text = new TextDecoder().decode(stdout);
   const parts = text.split(`\n${marker}\n`);
-  if (parts.length !== 3) {
+  if (parts.length !== 2) {
     if (text !== '') {
       await Deno.stdout.write(stdout);
     }
     return code === 0 ? 1 : code;
   }
 
-  const [body, headerJson, statsJson] = parts;
+  const [body, statsJson] = parts;
+  const headers: Headers = parseHeaderDump(headerText);
 
-  let headers: Headers;
   let stats: Record<string, unknown>;
   try {
-    headers = JSON.parse(headerJson);
     stats = JSON.parse(statsJson);
   } catch (error) {
     console.error(`curl-reporter: could not parse curl's write-out: ${error}`);

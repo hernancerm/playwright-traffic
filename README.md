@@ -59,7 +59,7 @@ curler export ./todos.ts > todos.postman.json
 ## Requirements
 
 - Deno >= 2.9
-- curl >= 7.83 (for `--write-out '%{header_json}'`)
+- curl >= 7.75 (for `--write-out '%{json}'` carrying the method and url)
 - Neovim >= 0.11 (optional, for the request-under-cursor keymap)
 
 ## Installation

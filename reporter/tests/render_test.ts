@@ -1,6 +1,7 @@
 import { assertEquals } from '@std/assert';
 import { render } from '../src/render.ts';
 import { withoutLinkerVars } from '../src/env.ts';
+import { parseHeaderDump } from '../src/headers.ts';
 import { parseRequest } from '../src/request.ts';
 import { tokenize } from '../src/tokenize.ts';
 
@@ -163,4 +164,35 @@ Deno.test('the dynamic linker vars are the only ones dropped', () => {
     { HOME: '/home/me', https_proxy: 'http://p:8080' },
   );
   assertEquals(withoutLinkerVars({}), {});
+});
+
+Deno.test('header dump: names lowercased, repeats kept, status line skipped', () => {
+  assertEquals(
+    parseHeaderDump(
+      'HTTP/2 200 \r\nContent-Type: application/json\r\nSet-Cookie: a=1\r\nSet-Cookie: b=2\r\n\r\n',
+    ),
+    { 'content-type': ['application/json'], 'set-cookie': ['a=1', 'b=2'] },
+  );
+});
+
+Deno.test('header dump: a redirect keeps only the final response', () => {
+  const dump =
+    'HTTP/1.1 301 Moved\nlocation: https://x.test/b\n\nHTTP/2 200\ncontent-type: text/html\n\n';
+  assertEquals(parseHeaderDump(dump), { 'content-type': ['text/html'] });
+});
+
+Deno.test('header dump: 100 Continue is not the response', () => {
+  const dump = 'HTTP/1.1 100 Continue\n\nHTTP/1.1 201 Created\nlocation: /users/1\n\n';
+  assertEquals(parseHeaderDump(dump), { location: ['/users/1'] });
+});
+
+Deno.test('header dump: a value may hold a colon', () => {
+  assertEquals(parseHeaderDump('HTTP/2 200\ndate: Mon, 21 Sep 2026 19:30:54 GMT\n\n'), {
+    date: ['Mon, 21 Sep 2026 19:30:54 GMT'],
+  });
+});
+
+Deno.test('header dump: nothing in, nothing out', () => {
+  assertEquals(parseHeaderDump(''), {});
+  assertEquals(parseHeaderDump('\n\n'), {});
 });

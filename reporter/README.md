@@ -5,9 +5,13 @@ Part of [curler](..). Backs `curler run-curl`.
 Runs a curl command and prints the exchange as markdown: status line, what was called, the request
 headers and body, the response headers, a pretty-printed body, and the raw output in a fold.
 
-It adds `--write-out '%{header_json}'` and `'%{json}'` to your command, so the headers and the
-status come from curl itself, and `--dump-header` so the Raw block holds the real header text. Needs
-curl 7.83 or newer.
+It adds `--write-out '%{json}'` to your command, so the status, method and url come from curl
+itself, and `--dump-header` so the headers are the real text off the wire. Needs curl 7.75 or newer;
+on 7.70 to 7.74 everything works except the method and url line.
+
+The headers are read back out of the `--dump-header` file rather than from `%{header_json}`, which
+would hand them over parsed but only exists from curl 7.83. The dump file is written anyway for the
+Raw block, so one source serves both.
 
 ## Use
 
