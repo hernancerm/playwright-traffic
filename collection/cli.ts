@@ -1,24 +1,32 @@
 /**
- * The `curler` command: run one request from a collection file, or export the
- * whole file as a Postman collection.
+ * The `curler` command.
  *
- * Both subcommands import your file, which runs it, so the install grants `-A`
- * to cover whatever your own code does.
+ * Every subcommand has a full kebab-case name and one alias, always its first
+ * word, so the short form is guessable from the long one.
+ *
+ * `run-curl` is the odd one out: it is served by the reporter, under narrower
+ * permissions than the rest. The shim `deno task install` writes dispatches on
+ * the subcommand before this file is ever loaded, so the name is listed here
+ * for `--help` only. See scripts/install.ts.
  */
 
-import { exportPostman } from './export.ts';
-import { run } from './run.ts';
+import { buildCurl } from './curl.ts';
+import { exportPostman } from './postman.ts';
 
 const USAGE = `curler: run and export requests from a TypeScript collection file.
 
-  curler run <file.ts> <export name>      print one request as a curl command
-  curler export <file.ts> [--name <name>] print a Postman v2.1 collection
+  curler build-curl <file.ts> <export name>        print one request as a curl command
+  curler run-curl                                  send a curl command on stdin, print the response
+  curler export-postman <file.ts> [--name <name>]  print a Postman v2.1 collection
+
+Aliases: build, run, export.
 
 Every \`export const\` holding a curl(...) request is a request. The export name
 is its name unless the request sets .name().
 
-  curler run ./todos.ts getTodoById | curlr
+  curler build ./todos.ts getTodoById | curler run
   curler export ./todos.ts > todos.postman.json
+  pbpaste | curler run
 `;
 
 async function main(args: string[]): Promise<number> {
@@ -29,20 +37,20 @@ async function main(args: string[]): Promise<number> {
     return command === undefined ? 2 : 0;
   }
 
-  if (command === 'run') {
+  if (command === 'build-curl' || command === 'build') {
     const [file, name] = rest;
     if (file === undefined || name === undefined) {
-      console.error('curler: run needs a file and an export name\n');
+      console.error('curler: build-curl needs a file and an export name\n');
       console.error(USAGE);
       return 2;
     }
-    return await run(file, name);
+    return await buildCurl(file, name);
   }
 
-  if (command === 'export') {
+  if (command === 'export-postman' || command === 'export') {
     const [file, ...flags] = rest;
     if (file === undefined) {
-      console.error('curler: export needs a file\n');
+      console.error('curler: export-postman needs a file\n');
       console.error(USAGE);
       return 2;
     }
@@ -55,6 +63,15 @@ async function main(args: string[]): Promise<number> {
       name = flags[1];
     }
     return await exportPostman(file, name);
+  }
+
+  // Reaching here means the shim did not route it, so the shim and this list
+  // have drifted apart.
+  if (command === 'run-curl' || command === 'run') {
+    console.error(
+      'curler: run-curl should have been handled by the shim; reinstall with `deno task install`',
+    );
+    return 70;
   }
 
   console.error(`curler: unknown command \`${command}\`\n`);

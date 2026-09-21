@@ -14,8 +14,8 @@ export const getTodoById = curl('GET', `${base}/todos/${id}`);
 ```
 
 ```sh
-curler run ./todos.ts getTodoById | curlr     # send it, see the response
-curler export ./todos.ts > todos.postman.json # hand it to someone on Postman
+curler build ./todos.ts getTodoById | curler run  # send it, see the response
+curler export ./todos.ts > todos.postman.json     # hand it to someone on Postman
 ```
 
 See [Where to keep collection files](#where-to-keep-collection-files) for the `deno.json` that makes
@@ -27,11 +27,11 @@ wrote yourself.
 
 ## Packages
 
-| Path                          | Package                       | What it is                                                                 |
-| ----------------------------- | ----------------------------- | -------------------------------------------------------------------------- |
-| [`curler/`](./curler)         | `@hernancerm/curler`          | Builds curl command strings. No deps, no runtime APIs, runs anywhere.      |
-| [`collection/`](./collection) | `@hernancerm/curl-collection` | A `.ts` file as a request collection. The `curler` command.                |
-| [`reporter/`](./reporter)     | `@hernancerm/curl-reporter`   | Runs a curl command, prints the response as markdown. The `curlr` command. |
+| Path                          | Package                       | What it is                                                                     |
+| ----------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
+| [`builder/`](./builder)       | `@hernancerm/curl-builder`    | Builds curl command strings. No deps, no runtime APIs, runs anywhere.          |
+| [`collection/`](./collection) | `@hernancerm/curl-collection` | A `.ts` file as a request collection. The `curler` command.                    |
+| [`reporter/`](./reporter)     | `@hernancerm/curl-reporter`   | Runs a curl command, prints the response as markdown. Backs `curler run-curl`. |
 
 They are split because `curler/` is worth using on its own: it is one file that only builds a
 string, so it works on Deno, Node, Bun and the browser alike.
@@ -45,7 +45,7 @@ Not published anywhere yet, so a collection file finds this repo through an impo
 {
   "imports": {
     "@hernancerm/curl-collection": "/Users/you/dev/repos/curler/collection/mod.ts",
-    "@hernancerm/curler": "/Users/you/dev/repos/curler/curler/mod.ts"
+    "@hernancerm/curl-builder": "/Users/you/dev/repos/curler/builder/mod.ts"
   }
 }
 ```
@@ -65,14 +65,29 @@ Once the packages are published the map is deleted and the specifier becomes
 deno task install
 ```
 
-Writes `curler` and `curlr` into `~/.local/bin` as shims into this repo, so a `git pull` is all an
-update takes.
+Writes `curler` into `~/.local/bin` as a shim into this repo, so a `git pull` is all an update
+takes.
 
 Not `deno install`: its shim runs with `--no-config`, and passing `--config` makes it copy the file
 next to the shim, where this workspace's member paths no longer resolve.
 
-`curler` gets `-A`, since loading your collection file runs it. `curlr` gets only
-`--allow-run=curl --allow-read --allow-write`, which is why the two stay separate commands.
+## Commands
+
+| Command                              | Alias    | Does                                                 |
+| ------------------------------------ | -------- | ---------------------------------------------------- |
+| `curler build-curl <file.ts> <name>` | `build`  | prints one request as a curl command                 |
+| `curler run-curl`                    | `run`    | sends a curl command from stdin, prints the response |
+| `curler export-postman <file.ts>`    | `export` | prints a Postman v2.1 collection                     |
+
+The alias is always the full name's first word, so you can guess it.
+
+`run-curl` runs under `--allow-run=curl --allow-read --allow-write`. The other two import your
+collection file, which runs it, so they get `-A`. The shim picks the set from the subcommand, which
+is how one command keeps two permission sets.
+
+That fence is worth what it is and no more: it bounds a bug in the renderer's own code. It does not
+contain a hostile curl command, because curl can read any file over `file://` and write anywhere
+with `-o`. Treat a command you paste in as code you are about to run.
 
 ## Editor
 

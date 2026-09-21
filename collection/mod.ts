@@ -8,7 +8,7 @@
  * curler request keeps working.
  */
 
-import { Curl, type Method } from '@hernancerm/curler';
+import { Curl, type Method } from '@hernancerm/curl-builder';
 
 export { Curl, type Method };
 

@@ -28,14 +28,14 @@
       "jsr:@std/path@1"
     ],
     "members": {
+      "builder": {
+        "dependencies": [
+          "jsr:@std/assert@1"
+        ]
+      },
       "collection": {
         "dependencies": [
           "jsr:@std/path@1"
-        ]
-      },
-      "curler": {
-        "dependencies": [
-          "jsr:@std/assert@1"
         ]
       },
       "reporter": {

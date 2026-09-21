@@ -2,13 +2,13 @@
  * Prints one request from a collection file as a curl command.
  *
  * Loading the file runs it, so the CLI grants `-A` to cover whatever your own
- * code does. Pipe the output to curl-reporter to see the response.
+ * code does. Pipe the output to `curler run-curl` to send it.
  */
 
 import { resolve, toFileUrl } from '@std/path';
 import { isRequest } from './mod.ts';
 
-export async function run(file: string, name: string): Promise<number> {
+export async function buildCurl(file: string, name: string): Promise<number> {
   const module = await import(toFileUrl(resolve(file)).href);
   const request = module[name];
   if (!isRequest(request)) {

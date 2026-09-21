@@ -3,8 +3,8 @@
 A `.ts` file is a request collection. Run one request, or export the whole file as a Postman
 collection.
 
-Requests are [curler](../curler) builders, so the command is the same one you would paste in a
-terminal. This adds two optional notes that only the export reads.
+Requests are [curl-builder](../builder) builders, so the command is the same one you would paste in
+a terminal. This adds two optional notes that only the export reads.
 
 ## A collection file
 
@@ -35,7 +35,7 @@ That bare name is not published yet. It resolves through a `deno.json` beside yo
 {
   "imports": {
     "@hernancerm/curl-collection": "/Users/you/dev/repos/curler/collection/mod.ts",
-    "@hernancerm/curler": "/Users/you/dev/repos/curler/curler/mod.ts"
+    "@hernancerm/curl-builder": "/Users/you/dev/repos/curler/builder/mod.ts"
   }
 }
 ```
@@ -48,11 +48,11 @@ Files under this repo skip it: the workspace already resolves the name.
 ## Run one request
 
 ```sh
-curler run ./todos.ts getTodoById | curlr
+curler build ./todos.ts getTodoById | curler run
 ```
 
-`curler run` only prints the command. [curl-reporter](../reporter) is what sends it. Drop the pipe
-to see the curl line on its own, ready to paste somewhere.
+`curler build-curl` only prints the command. [curl-reporter](../reporter) is what sends it. Drop the
+pipe to see the curl line on its own, ready to paste somewhere.
 
 ## Export
 
