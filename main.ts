@@ -10,9 +10,6 @@ const USAGE = `curl-reporter: run a curl command, print the response as markdown
 The leading \`curl\` is optional. Every other argument is passed to curl as-is.
 With no arguments the command is read from stdin, which suits a pasted "Copy as
 cURL" with its backslash line continuations.
-
-Options (must come first):
-  --certs   keep the TLS certificate chain in the Raw block (dropped by default)
 `;
 
 function curlArgs(args: string[]): string[] {
@@ -36,11 +33,6 @@ async function main(): Promise<number> {
     return 0;
   }
 
-  const keepCerts = args[0] === "--certs";
-  if (keepCerts) {
-    args = args.slice(1);
-  }
-
   if (args.length === 0) {
     if (Deno.stdin.isTerminal()) {
       console.log(USAGE);
@@ -60,15 +52,35 @@ async function main(): Promise<number> {
   const marker = "CURLR" + crypto.randomUUID().replaceAll("-", "");
   const writeOut = `\\n${marker}\\n%{header_json}\\n${marker}\\n%{json}`;
 
-  const command = new Deno.Command("curl", {
-    // --write-out comes last so it wins over any -w the caller passed.
-    args: [...curlArgs(args), "--silent", "--show-error", "--write-out", writeOut],
-    // output() defaults stdin to "null"; inheriting keeps `-d @-` working.
-    stdin: "inherit",
-    stdout: "piped",
-    stderr: "inherit",
-  });
-  const { code, stdout } = await command.output();
+  // curl has no write-out variable for the headers as they came off the wire, so
+  // --dump-header takes them to a file, out of the way of the body on stdout.
+  const headerFile = await Deno.makeTempFile({ prefix: "curlr-" });
+
+  let code: number;
+  let stdout: Uint8Array;
+  let headerText: string;
+  try {
+    const command = new Deno.Command("curl", {
+      // Ours come last so they win over anything the caller passed.
+      args: [
+        ...curlArgs(args),
+        "--silent",
+        "--show-error",
+        "--dump-header",
+        headerFile,
+        "--write-out",
+        writeOut,
+      ],
+      // output() defaults stdin to "null"; inheriting keeps `-d @-` working.
+      stdin: "inherit",
+      stdout: "piped",
+      stderr: "inherit",
+    });
+    ({ code, stdout } = await command.output());
+    headerText = await Deno.readTextFile(headerFile);
+  } finally {
+    await Deno.remove(headerFile).catch(() => {});
+  }
 
   const text = new TextDecoder().decode(stdout);
   const parts = text.split(`\n${marker}\n`);
@@ -92,14 +104,9 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  // %{json} carries the whole PEM chain in `certs`, which is pages long and
-  // buries everything else in the Raw block. --certs keeps it.
-  let statsOut = statsJson;
-  if (!keepCerts && "certs" in stats) {
-    const { certs: _certs, ...rest } = stats;
-    statsOut = JSON.stringify(rest);
-  }
-  const raw = [body, headerJson, statsOut].join("\n");
+  // What `curl -i` would have printed: the header block(s), a blank line, the
+  // body. The CRs are dropped because they only show up as noise in a buffer.
+  const raw = headerText.replaceAll("\r\n", "\n").replace(/\n+$/, "") + "\n\n" + body;
 
   await Deno.stdout.write(
     new TextEncoder().encode(render({ stats, headers, body, raw })),

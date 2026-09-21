@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "exports": "./main.ts",
   "tasks": {
-    "run": "deno run --allow-run=curl main.ts",
-    "test": "deno test --allow-run=curl --allow-net",
-    "install": "deno install --global --force --allow-run=curl --name curlr main.ts"
+    "run": "deno run --allow-run=curl --allow-read --allow-write main.ts",
+    "test": "deno test --allow-run=curl --allow-net --allow-read --allow-write",
+    "install": "deno install --global --force --allow-run=curl --allow-read --allow-write --name curlr main.ts"
   },
   "fmt": {
     "lineWidth": 88
