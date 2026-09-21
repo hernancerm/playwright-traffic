@@ -165,6 +165,18 @@ export class Curl {
     }
     return lines.join(' \\\n  ');
   }
+
+  // `console.log(cmd)` inspects the object instead of calling toString(), which
+  // would print `Curl {}`: every field is private. These are the hooks Deno and
+  // Node consult first. Both are plain well-known symbols, so nothing here ties
+  // this module to a runtime.
+  [Symbol.for('Deno.customInspect')](): string {
+    return this.toString();
+  }
+
+  [Symbol.for('nodejs.util.inspect.custom')](): string {
+    return this.toString();
+  }
 }
 
 export function curl(url: string): Curl;

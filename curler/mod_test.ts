@@ -49,3 +49,10 @@ Deno.test('auth, bearer, flags and form', () => {
     `curl -X POST 'http://x' -H 'Authorization: Bearer t' -F 'file=@/tmp/a.png' -u 'u:p'\\''w' -k`,
   );
 });
+
+Deno.test('console.log prints the command, not the object', () => {
+  const cmd = curl('DELETE', 'http://x/7').oneLine();
+  // What `console.log(cmd)` reaches for. Without it the output is `Curl {}`,
+  // since every field is private.
+  assertEquals(Deno.inspect(cmd), `curl -X DELETE 'http://x/7'`);
+});
