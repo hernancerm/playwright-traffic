@@ -1,6 +1,6 @@
 import { assertEquals } from '@std/assert';
 import { render } from '../src/render.ts';
-import { withoutLinkerVars } from '../src/env.ts';
+import { wantsRaw, withoutLinkerVars } from '../src/env.ts';
 import { parseHeaderDump } from '../src/headers.ts';
 import { parseRequest } from '../src/request.ts';
 import { tokenize } from '../src/tokenize.ts';
@@ -10,7 +10,6 @@ Deno.test('renders a json response', () => {
     stats: { response_code: 200 },
     headers: { 'content-type': ['application/json'] },
     body: '{"id":42,"name":"Martín"}',
-    raw: 'RAW',
   });
   assertEquals(
     out,
@@ -27,10 +26,6 @@ Deno.test('renders a json response', () => {
       '```',
       '}}}',
       '',
-      'Raw{{{',
-      'RAW',
-      '}}}',
-      '',
     ].join('\n'),
   );
 });
@@ -40,7 +35,6 @@ Deno.test('repeated headers each get a line', () => {
     stats: { response_code: 204 },
     headers: { 'set-cookie': ['a=1', 'b=2'] },
     body: '',
-    raw: '',
   });
   assertEquals(out.includes('set-cookie: a=1\nset-cookie: b=2'), true);
   assertEquals(out.includes('(empty body)'), true);
@@ -51,7 +45,6 @@ Deno.test('non-json body uses a plain fence', () => {
     stats: { response_code: 404 },
     headers: {},
     body: 'not found',
-    raw: '',
   });
   assertEquals(out.startsWith('# ✗ 404 Not Found'), true);
   assertEquals(out.includes('```\nnot found\n```'), true);
@@ -62,7 +55,6 @@ Deno.test('a failed transfer says why', () => {
     stats: { response_code: 0, errormsg: 'Could not resolve host: nope' },
     headers: {},
     body: '',
-    raw: '',
   });
   assertEquals(out.startsWith('# ✗ (no response) Could not resolve host: nope'), true);
 });
@@ -80,7 +72,6 @@ Deno.test('the target line says what was called', () => {
     stats: { response_code: 201, method: 'POST', url: 'https://x.test/todos' },
     headers: {},
     body: '',
-    raw: '',
   });
   assertEquals(out.split('\n')[2], 'POST https://x.test/todos');
 });
@@ -95,7 +86,6 @@ Deno.test('a redirect shows where it ended up', () => {
     },
     headers: {},
     body: '',
-    raw: '',
   });
   assertEquals(out.includes('GET http://x.test/a\n-> https://x.test/b'), true);
 });
@@ -105,7 +95,6 @@ Deno.test('request folds appear only when there is something to show', () => {
     stats: { response_code: 200, method: 'GET', url: 'https://x.test/1' },
     headers: {},
     body: '',
-    raw: '',
     request: { headers: [] },
   });
   assertEquals(get.includes('Request headers'), false);
@@ -115,7 +104,6 @@ Deno.test('request folds appear only when there is something to show', () => {
     stats: { response_code: 201, method: 'POST', url: 'https://x.test/todos' },
     headers: {},
     body: '',
-    raw: '',
     request: { headers: ['Content-Type: application/json'], body: '{"a":1}' },
   });
   assertEquals(post.includes('Request headers{{{\n```http\nContent-Type: application/json'), true);
@@ -195,4 +183,18 @@ Deno.test('header dump: a value may hold a colon', () => {
 Deno.test('header dump: nothing in, nothing out', () => {
   assertEquals(parseHeaderDump(''), {});
   assertEquals(parseHeaderDump('\n\n'), {});
+});
+
+Deno.test('the Raw fold is opt-in, through CURLER_RAW', () => {
+  const env = (value?: string) => ({ get: () => value });
+  assertEquals(wantsRaw(env()), false);
+  assertEquals(wantsRaw(env('0')), false);
+  assertEquals(wantsRaw(env('')), false);
+  assertEquals(wantsRaw(env('1')), true);
+  assertEquals(wantsRaw(env('YES')), true);
+  assertEquals(wantsRaw(env(' true ')), true);
+
+  const report = { stats: { response_code: 200 }, headers: {}, body: '{}' };
+  assertEquals(render(report).includes('Raw{{{'), false);
+  assertEquals(render({ ...report, raw: 'RAW' }).includes('Raw{{{\nRAW\n}}}'), true);
 });

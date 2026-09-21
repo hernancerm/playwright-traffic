@@ -18,3 +18,14 @@ export function withoutLinkerVars(env: Record<string, string>): Record<string, s
   }
   return safe;
 }
+
+/**
+ * Whether the report should carry the Raw block, off `CURLER_RAW`.
+ *
+ * Off by default: the raw text repeats the headers and body the report already
+ * pretty-prints, so it is only worth its lines when you doubt the parsing.
+ */
+export function wantsRaw(env: { get(name: string): string | undefined }): boolean {
+  const value = env.get('CURLER_RAW')?.trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes';
+}

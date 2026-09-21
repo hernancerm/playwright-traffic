@@ -1,6 +1,6 @@
 import { render } from './src/render.ts';
 import { type Headers, parseHeaderDump } from './src/headers.ts';
-import { withoutLinkerVars } from './src/env.ts';
+import { wantsRaw, withoutLinkerVars } from './src/env.ts';
 import { parseRequest } from './src/request.ts';
 import { tokenize } from './src/tokenize.ts';
 
@@ -13,6 +13,8 @@ const USAGE = `curl-reporter: run a curl command, print the response as markdown
 The leading \`curl\` is optional. Every other argument is passed to curl as-is.
 With no arguments the command is read from stdin, which suits a pasted "Copy as
 cURL" with its backslash line continuations.
+
+Set CURLER_RAW=1 to add a Raw fold with curl's own output, headers and all.
 `;
 
 function curlArgs(args: string[]): string[] {
@@ -112,7 +114,9 @@ async function main(): Promise<number> {
 
   // What `curl -i` would have printed: the header block(s), a blank line, the
   // body. The CRs are dropped because they only show up as noise in a buffer.
-  const raw = headerText.replaceAll('\r\n', '\n').replace(/\n+$/, '') + '\n\n' + body;
+  const raw = wantsRaw(Deno.env)
+    ? headerText.replaceAll('\r\n', '\n').replace(/\n+$/, '') + '\n\n' + body
+    : undefined;
 
   await Deno.stdout.write(
     new TextEncoder().encode(

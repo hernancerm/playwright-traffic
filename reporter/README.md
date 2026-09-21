@@ -3,15 +3,15 @@
 Part of [curler](..). Backs `curler run-curl`.
 
 Runs a curl command and prints the exchange as markdown: status line, what was called, the request
-headers and body, the response headers, a pretty-printed body, and the raw output in a fold.
+headers and body, the response headers, and a pretty-printed body. Set `CURLER_RAW=1` for curl's own
+output too, in a Raw fold.
 
 It adds `--write-out '%{json}'` to your command, so the status, method and url come from curl
 itself, and `--dump-header` so the headers are the real text off the wire. Needs curl 7.75 or newer;
 on 7.70 to 7.74 everything works except the method and url line.
 
 The headers are read back out of the `--dump-header` file rather than from `%{header_json}`, which
-would hand them over parsed but only exists from curl 7.83. The dump file is written anyway for the
-Raw block, so one source serves both.
+would hand them over parsed but only exists from curl 7.83.
 
 ## Use
 
@@ -89,13 +89,6 @@ Response headers{{{
 content-type: application/json
 ```
 }}}
-
-Raw{{{
-HTTP/2 201
-content-type: application/json
-
-{"id":42}
-}}}
 ````
 
 On both sides the body comes first and the headers follow, since the body is what the exchange is
@@ -109,6 +102,27 @@ sent. So they are the `-H`, `-d` and `-F` you passed, not curl's implicit `Host`
 `Accept`, and not the `Authorization` that `-u` generates.
 
 Both request folds are omitted when there is nothing in them, which is the usual case for a GET.
+
+### The Raw block
+
+`CURLER_RAW=1` appends what `curl -i` would have printed, the header block and the body as they came
+off the wire, in a `Raw` fold:
+
+```text
+Raw{{{
+HTTP/2 201
+content-type: application/json
+
+{"id":42}
+}}}
+```
+
+It is off by default because it repeats what the report already shows, prettier. Turn it on when you
+doubt the parsing, or want the bytes.
+
+```sh
+CURLER_RAW=1 curler run curl https://api.example.com/users/42
+```
 
 The `{{{` / `}}}` markers are vim fold markers (`:h fold-marker`), so every block comes up folded in
 a buffer with `foldmethod=marker`.

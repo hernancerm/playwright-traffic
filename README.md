@@ -180,7 +180,7 @@ needs a `deno.json`, `deno.jsonc` or `deno.lock`, and `vtsls` returns early when
 [`curler_runner.lua`](https://github.com/hernancerm/dotfiles) sends the request under the cursor to
 a split. It reads the name off the `export const` around the cursor and writes the buffer to a temp
 file, so unsaved edits are what run. The response opens as markdown with `foldmethod=marker`, so the
-header and raw blocks come up folded.
+header blocks come up folded.
 
 ## Packages
 

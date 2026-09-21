@@ -8,7 +8,8 @@ export interface Report {
   stats: Record<string, unknown>;
   headers: Headers;
   body: string;
-  raw: string;
+  /** The `curl -i` text. Absent unless asked for, see wantsRaw. */
+  raw?: string;
   request?: Request;
 }
 
@@ -98,7 +99,7 @@ export function render(report: Report): string {
     requestHeaders && fold('Request headers', requestHeaders),
     renderBody(report.body),
     fold('Response headers', renderHeaders(report.headers)),
-    fold('Raw', report.raw.replace(/\n+$/, '')),
+    report.raw !== undefined && fold('Raw', report.raw.replace(/\n+$/, '')),
   ];
-  return sections.filter((s) => s !== undefined && s !== '').join('\n\n') + '\n';
+  return sections.filter((s) => typeof s === 'string' && s !== '').join('\n\n') + '\n';
 }
