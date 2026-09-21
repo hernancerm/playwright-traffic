@@ -34,14 +34,14 @@ curler export ./todos.ts > todos.postman.json
 
 ## Features
 
-- A request is an `export const`. No registry, no index, no naming convention to remember.
-- Values are substituted by TypeScript, so a `${id}` is the value it had. No `{{variables}}`.
-- A token can come from `Deno.env`, a file, or a `fetch` you wrote yourself. It is a program.
-- The command printed is the one you would paste into a terminal. Pipe it anywhere.
-- The response renders as markdown: status, headers, pretty-printed body, raw output in a fold.
-- Export the whole file as a Postman v2.1 collection, for people who want one.
 - Send the request under the cursor to a split in Neovim, unsaved edits included.
-- The builder is one file with no dependencies and no runtime APIs, so it also runs on Node and Bun.
+- Print a request as a curl command, ready to paste into a terminal or a bug report.
+- Render the response as markdown: status line, headers, pretty-printed body, raw output in a fold.
+- Export the whole file as a Postman v2.1 collection.
+- Substitute values in TypeScript, so a `${id}` reaches curl as the value it had.
+- Read a token from `Deno.env`, a file, or a `fetch`, since a collection file is a program.
+- Render a pasted "Copy as cURL" too, backslash continuations included.
+- Run the builder on Node, Bun or the browser: one file, no dependencies, no runtime APIs.
 
 ## Limitations
 
@@ -90,8 +90,9 @@ The shim points into the clone, so a `git pull` is the whole upgrade.
 
 ## Collection file
 
-One `export const` per request. The export name becomes the request name, `getTodoById` reading as
-`Get todo by id`.
+One `export const` per request, and that is the whole convention: no registry to append to, no index
+to keep in sync, no file name pattern. The export name becomes the request name, `getTodoById`
+reading as `Get todo by id`.
 
 | Method                    | What it does                                        |
 | ------------------------- | --------------------------------------------------- |
