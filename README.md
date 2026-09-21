@@ -147,13 +147,15 @@ Once the packages are published the map is deleted and the specifier becomes
 
 **One binary, two permission sets.** The shim picks by subcommand, before Deno starts.
 
-| Subcommand                     | Permissions                     | Why                              |
-| ------------------------------ | ------------------------------- | -------------------------------- |
-| `build-curl`, `export-postman` | `-A`                            | Importing your file runs it.     |
-| `run-curl`                     | `--allow-run=curl`, read, write | Spawns curl, writes a temp file. |
+| Subcommand                     | Permissions                          | Why                              |
+| ------------------------------ | ------------------------------------ | -------------------------------- |
+| `build-curl`, `export-postman` | `-A`                                 | Importing your file runs it.     |
+| `run-curl`                     | `--allow-run=curl`, read, write, env | Spawns curl, writes a temp file. |
 
 `run-curl` needs read and write on top of `--allow-run=curl` because curl's `--dump-header` writes
-the header text to a temp file, which is then read and removed.
+the header text to a temp file, which is then read and removed. It needs env to hand curl its
+environment minus the `LD_*` and `DYLD_*` variables, which Deno will not let an allow-listed spawn
+inherit. See [reporter/README.md](./reporter/README.md).
 
 That fence is worth what it is and no more. It bounds a bug in the renderer's own code. It does
 **not** contain a hostile curl command, because curl reads any file over `file://` and writes

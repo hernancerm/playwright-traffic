@@ -1,5 +1,6 @@
 import { assertEquals } from '@std/assert';
 import { render } from '../src/render.ts';
+import { withoutLinkerVars } from '../src/env.ts';
 import { parseRequest } from '../src/request.ts';
 import { tokenize } from '../src/tokenize.ts';
 
@@ -148,4 +149,18 @@ Deno.test('body comes before headers on both sides', () => {
   assertEquals(folds, ['Request body', 'Request headers', 'Response headers', 'Raw']);
   // The response body is not folded, so its place is fixed by what follows it.
   assertEquals(lines.indexOf('  "id": 1') < lines.indexOf('Response headers{{{'), true);
+});
+
+Deno.test('the dynamic linker vars are the only ones dropped', () => {
+  assertEquals(
+    withoutLinkerVars({
+      HOME: '/home/me',
+      https_proxy: 'http://p:8080',
+      LD_LIBRARY_PATH: '/opt/lib',
+      LD_PRELOAD: '/opt/x.so',
+      DYLD_INSERT_LIBRARIES: '/opt/y.dylib',
+    }),
+    { HOME: '/home/me', https_proxy: 'http://p:8080' },
+  );
+  assertEquals(withoutLinkerVars({}), {});
 });

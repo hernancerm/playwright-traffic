@@ -38,7 +38,20 @@ cat body.json | curler run curl -X POST -H 'Content-Type: application/json' \
 `run-curl` here, under narrower permissions than the other subcommands.
 
 It needs `--allow-read` and `--allow-write` on top of `--allow-run=curl`: curl's `--dump-header`
-writes the header text to a temp file, which is then read and removed.
+writes the header text to a temp file, which is then read and removed. `--allow-env` is for the
+paragraph below, and grants strictly less than the `--allow-read` already there.
+
+curl is spawned without the dynamic linker's variables, the `LD_*` and `DYLD_*` ones. Under
+`--allow-run=curl` Deno refuses to spawn at all while one is set, and it is right to: they load
+arbitrary code into curl, so naming one program in the allow-list would promise something it cannot
+keep. Every other variable is passed through, so a proxy or a `~/.curlrc` still applies.
+
+If your curl needs `LD_LIBRARY_PATH` to find its libraries it will not start, which is loud and not
+silent. The fix then is to drop the allow-list, in `scripts/install.ts`:
+
+```text
+--allow-run    instead of    --allow-run=curl
+```
 
 ## Output
 

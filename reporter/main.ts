@@ -1,4 +1,5 @@
 import { type Headers, render } from './src/render.ts';
+import { withoutLinkerVars } from './src/env.ts';
 import { parseRequest } from './src/request.ts';
 import { tokenize } from './src/tokenize.ts';
 
@@ -73,6 +74,8 @@ async function main(): Promise<number> {
         '--write-out',
         writeOut,
       ],
+      clearEnv: true,
+      env: withoutLinkerVars(Deno.env.toObject()),
       // output() defaults stdin to "null"; inheriting keeps `-d @-` working.
       stdin: 'inherit',
       stdout: 'piped',
