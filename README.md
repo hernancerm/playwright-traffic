@@ -40,8 +40,8 @@ curler export ./todos.ts > todos.postman.json
 - Export the whole file as a Postman v2.1 collection.
 - Substitute values in TypeScript, so a `${id}` reaches curl as the value it had.
 - Read a token from `Deno.env`, a file, or a `fetch`, since a collection file is a program.
-- Render a pasted "Copy as cURL" too, backslash continuations included.
 - Run the builder on Node, Bun or the browser: one file, no dependencies, no runtime APIs.
+- Render a pasted "Copy as cURL" too, backslash continuations included.
 
 ## Limitations
 
