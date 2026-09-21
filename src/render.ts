@@ -26,7 +26,11 @@ function renderHeaders(headers: Headers): string {
   const lines = Object.entries(headers).flatMap(([name, values]) =>
     values.map((value) => `${name}: ${value}`)
   );
-  return lines.join("\n");
+  if (lines.length === 0) {
+    return "(no headers)";
+  }
+  // The http tag makes highlighters color names apart from values.
+  return "```http\n" + lines.join("\n") + "\n```";
 }
 
 function renderBody(body: string): string {
