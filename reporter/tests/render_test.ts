@@ -15,15 +15,15 @@ Deno.test('renders a json response', () => {
     [
       '# ✓ 200 OK',
       '',
+      '```json',
+      '{\n  "id": 42,\n  "name": "Martín"\n}',
+      '```',
+      '',
       'Response headers{{{',
       '```http',
       'content-type: application/json',
       '```',
       '}}}',
-      '',
-      '```json',
-      '{\n  "id": 42,\n  "name": "Martín"\n}',
-      '```',
       '',
       'Raw{{{',
       'RAW',
@@ -133,4 +133,19 @@ Deno.test('parseRequest reads headers and every -d spelling', () => {
     'file=@a.png\nkind=avatar',
   );
   assertEquals(parseRequest(['https://x.test']), { headers: [], body: undefined });
+});
+
+Deno.test('body comes before headers on both sides', () => {
+  const out = render({
+    stats: { response_code: 201, method: 'POST', url: 'https://x.test/todos' },
+    headers: { 'content-type': ['application/json'] },
+    body: '{"id":1}',
+    raw: 'RAW',
+    request: { headers: ['Content-Type: application/json'], body: '{"a":1}' },
+  });
+  const lines = out.split('\n');
+  const folds = lines.filter((l) => l.endsWith('{{{')).map((l) => l.slice(0, -3));
+  assertEquals(folds, ['Request body', 'Request headers', 'Response headers', 'Raw']);
+  // The response body is not folded, so its place is fixed by what follows it.
+  assertEquals(lines.indexOf('  "id": 1') < lines.indexOf('Response headers{{{'), true);
 });

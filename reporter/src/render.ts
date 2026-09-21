@@ -88,13 +88,15 @@ export function render(report: Report): string {
   const requestHeaders = renderRequestHeaders(report.request);
   const requestBody = renderRequestBody(report.request);
   // A GET usually has neither, and an absent fold reads better than an empty one.
+  // Body before headers on both sides: the body is what the request is about,
+  // the headers are the detail you open when the body does not explain itself.
   const sections = [
     renderHeading(report.stats),
     renderTarget(report.stats),
-    requestHeaders && fold('Request headers', requestHeaders),
     requestBody && fold('Request body', requestBody),
-    fold('Response headers', renderHeaders(report.headers)),
+    requestHeaders && fold('Request headers', requestHeaders),
     renderBody(report.body),
+    fold('Response headers', renderHeaders(report.headers)),
     fold('Raw', report.raw.replace(/\n+$/, '')),
   ];
   return sections.filter((s) => s !== undefined && s !== '').join('\n\n') + '\n';

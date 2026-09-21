@@ -47,12 +47,6 @@ writes the header text to a temp file, which is then read and removed.
 
 POST https://api.example.com/users
 
-Request headers{{{
-```http
-Content-Type: application/json
-```
-}}}
-
 Request body{{{
 ```json
 {
@@ -61,9 +55,9 @@ Request body{{{
 ```
 }}}
 
-Response headers{{{
+Request headers{{{
 ```http
-content-type: application/json
+Content-Type: application/json
 ```
 }}}
 
@@ -73,6 +67,12 @@ content-type: application/json
 }
 ```
 
+Response headers{{{
+```http
+content-type: application/json
+```
+}}}
+
 Raw{{{
 HTTP/2 201
 content-type: application/json
@@ -80,6 +80,9 @@ content-type: application/json
 {"id":42}
 }}}
 ````
+
+On both sides the body comes first and the headers follow, since the body is what the exchange is
+about and the headers are the detail you unfold when it does not explain itself.
 
 The method and url come from curl's `--write-out`, so they are what curl really used. After a
 redirect the line curl ended on follows, as `-> <url>`.
