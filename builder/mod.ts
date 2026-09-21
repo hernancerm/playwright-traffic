@@ -9,8 +9,10 @@
  * `${cmd}` both work without a build step.
  */
 
-// The `string & {}` arm keeps autocomplete on the common verbs while still
-// allowing anything (PROPFIND, MKCOL, ...).
+/**
+ * An HTTP method. The `string & {}` arm keeps autocomplete on the common verbs
+ * while still allowing anything (PROPFIND, MKCOL, ...).
+ */
 export type Method =
   | 'GET'
   | 'POST'
@@ -22,6 +24,7 @@ export type Method =
   // deno-lint-ignore ban-types
   | (string & {});
 
+/** A header, form or query value. Anything else is `String()`d. */
 export type Primitive = string | number | boolean;
 
 /** Wraps a value in single quotes, the only quoting `sh` never reinterprets. */
@@ -30,6 +33,7 @@ function quote(value: string): string {
   return `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
+/** A curl command being built. Every method returns the builder, so they chain in any order. */
 export class Curl {
   #method: Method;
   #url: string;
@@ -43,11 +47,13 @@ export class Curl {
   #jsonBody = false;
   #oneLine = false;
 
+  /** Prefer {@link curl}: it reads better and defaults the method to GET. */
   constructor(method: Method, url: string) {
     this.#method = method;
     this.#url = url;
   }
 
+  /** Adds one `-H` per entry. A repeated name wins, ignoring case. */
   headers(headers: Record<string, Primitive>): this {
     for (const [name, value] of Object.entries(headers)) {
       this.#headers.set(name.toLowerCase(), { name, value: String(value) });
@@ -55,6 +61,7 @@ export class Curl {
     return this;
   }
 
+  /** Adds one header. */
   header(name: string, value: Primitive): this {
     return this.headers({ [name]: value });
   }
@@ -89,11 +96,13 @@ export class Curl {
     return this;
   }
 
+  /** Adds `-u user:password`. */
   auth(user: string, password: string): this {
     this.#flags.push('-u', quote(`${user}:${password}`));
     return this;
   }
 
+  /** Adds an `Authorization: Bearer` header. */
   bearer(token: string): this {
     return this.header('Authorization', `Bearer ${token}`);
   }
@@ -148,6 +157,7 @@ export class Curl {
     return args;
   }
 
+  /** The command, on one line if {@link oneLine} was set, else with backslash continuations. */
   toString(): string {
     const args = this.toArgs();
     if (this.#oneLine) {
@@ -166,20 +176,24 @@ export class Curl {
     return lines.join(' \\\n  ');
   }
 
-  // `console.log(cmd)` inspects the object instead of calling toString(), which
-  // would print `Curl {}`: every field is private. These are the hooks Deno and
-  // Node consult first. Both are plain well-known symbols, so nothing here ties
-  // this module to a runtime.
+  /**
+   * `console.log(cmd)` inspects the object rather than calling toString(), so
+   * without this it prints `Curl {}`: every field is private. A plain
+   * well-known symbol, so nothing here ties this module to a runtime.
+   */
   [Symbol.for('Deno.customInspect')](): string {
     return this.toString();
   }
 
+  /** The same, for Node and Bun. */
   [Symbol.for('nodejs.util.inspect.custom')](): string {
     return this.toString();
   }
 }
 
+/** Builds a GET. */
 export function curl(url: string): Curl;
+/** Builds a request with an explicit method. */
 export function curl(method: Method, url: string): Curl;
 export function curl(methodOrUrl: string, maybeUrl?: string): Curl {
   // One argument is the url; the method is only ever the first of two.

@@ -8,9 +8,9 @@
  * curler request keeps working.
  */
 
-import { Curl, type Method } from '@hernancerm/curl-builder';
+import { Curl, type Method, type Primitive } from '@hernancerm/curl-builder';
 
-export { Curl, type Method };
+export { Curl, type Method, type Primitive };
 
 // A collection file imports this class by its own specifier (`jsr:...`), while
 // the CLI holds it from the workspace. Those are two copies of the class, so
@@ -18,13 +18,19 @@ export { Curl, type Method };
 // from one global registry, so the mark crosses that split.
 const BRAND = Symbol.for('curl-collection.request');
 
+/** The two notes a request can carry that only the Postman export reads. */
 export interface Meta {
+  /** Item name. Defaults to the `export const` name, humanized. */
   name?: string;
+  /** Postman's description field. */
   desc?: string;
 }
 
+/** A {@link Curl} that also carries the notes the Postman export reads. */
 export class Request extends Curl {
+  /** See `BRAND`. Set so {@link isRequest} recognises this across copies of the module. */
   readonly [BRAND] = true;
+  /** Set by {@link Request.name} and {@link Request.desc}. */
   readonly meta: Meta = {};
 
   /** Overrides the name the export derives from the `export const` it is bound to. */
@@ -45,7 +51,9 @@ export function isRequest(value: unknown): value is Request {
   return typeof value === 'object' && value !== null && BRAND in value;
 }
 
+/** Builds a GET. */
 export function curl(url: string): Request;
+/** Builds a request with an explicit method. */
 export function curl(method: Method, url: string): Request;
 export function curl(methodOrUrl: string, maybeUrl?: string): Request {
   // One argument is the url; the method is only ever the first of two.
