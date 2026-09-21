@@ -14,10 +14,12 @@ function renderHeading(stats: Record<string, unknown>): string {
   if (!code) {
     // No response code means the transfer never completed; %{json} explains why.
     const why = stats.errormsg ?? `curl exit ${stats.exitcode ?? "?"}`;
-    return `# (no response) ${why}`;
+    return `# ✗ (no response) ${why}`;
   }
+  // A redirect is a real answer, so 3xx is a tick; only 4xx/5xx are a cross.
+  const mark = code < 400 ? "✓" : "✗";
   const reason = reasonPhrase(code);
-  return reason ? `# ${code} ${reason}` : `# ${code}`;
+  return reason ? `# ${mark} ${code} ${reason}` : `# ${mark} ${code}`;
 }
 
 function renderHeaders(headers: Headers): string {

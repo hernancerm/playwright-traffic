@@ -12,7 +12,7 @@ Deno.test("renders a json response", () => {
   assertEquals(
     out,
     [
-      "# 200 OK",
+      "# ✓ 200 OK",
       "",
       "Headers{{{",
       "```http",
@@ -50,7 +50,7 @@ Deno.test("non-json body uses a plain fence", () => {
     body: "not found",
     raw: "",
   });
-  assertEquals(out.startsWith("# 404 Not Found"), true);
+  assertEquals(out.startsWith("# ✗ 404 Not Found"), true);
   assertEquals(out.includes("```\nnot found\n```"), true);
 });
 
@@ -61,7 +61,7 @@ Deno.test("a failed transfer says why", () => {
     body: "",
     raw: "",
   });
-  assertEquals(out.startsWith("# (no response) Could not resolve host: nope"), true);
+  assertEquals(out.startsWith("# ✗ (no response) Could not resolve host: nope"), true);
 });
 
 Deno.test("tokenize handles quotes and continuations", () => {
