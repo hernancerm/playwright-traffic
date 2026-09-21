@@ -1,5 +1,7 @@
 # curl-reporter
 
+Part of [curler](..). Backs `curler run-curl`.
+
 Runs a curl command and prints the response as markdown: status line, headers, pretty-printed body,
 and the raw output in a fold.
 

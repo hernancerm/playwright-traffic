@@ -1,5 +1,7 @@
 # curl-collection
 
+Part of [curler](..). Backs `curler build-curl` and `curler export-postman`.
+
 A `.ts` file is a request collection. Run one request, or export the whole file as a Postman
 collection.
 
@@ -30,20 +32,7 @@ One `export const` per request. Nothing else is required: the export name become
 Every other method is curler's: `.headers()`, `.json()`, `.query()`, `.bearer()`, and so on.
 
 That bare name is not published yet. It resolves through a `deno.json` beside your collection files:
-
-```json
-{
-  "imports": {
-    "@hernancerm/curl-collection": "/Users/you/dev/repos/curler/collection/mod.ts",
-    "@hernancerm/curl-builder": "/Users/you/dev/repos/curler/builder/mod.ts"
-  }
-}
-```
-
-One per directory of collection files, not one per file. It also points your editor at `denols`,
-which otherwise reads these as Node TypeScript and resolves `Request` to the browser global.
-
-Files under this repo skip it: the workspace already resolves the name.
+see [Where to keep collection files](../README.md#where-to-keep-collection-files).
 
 ## Run one request
 

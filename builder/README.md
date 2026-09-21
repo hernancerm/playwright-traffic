@@ -1,6 +1,8 @@
-# curler
+# curl-builder
 
 Builds `curl` command strings. It never runs a request.
+
+Part of [curler](..). Usable on its own.
 
 You get back a string. What happens to it next is up to you: print it, paste it into a terminal, put
 it in a bug report, hand it to `Deno.Command`. This library does not care.
