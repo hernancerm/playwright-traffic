@@ -1,0 +1,3 @@
+#!/bin/sh
+# Thin wrapper so the tool can be run from the repo without installing it.
+exec deno run --quiet --allow-run=curl "$(dirname "$0")/main.ts" "$@"
