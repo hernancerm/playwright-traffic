@@ -2,15 +2,15 @@
 
 Builds `curl` command strings. It never runs a request.
 
-You get back a string. What happens to it next is up to you: print it, paste it into a
-terminal, put it in a bug report, hand it to `Deno.Command`. This library does not care.
+You get back a string. What happens to it next is up to you: print it, paste it into a terminal, put
+it in a bug report, hand it to `Deno.Command`. This library does not care.
 
-Single file, no dependencies, importable straight from a URL.
+Single file, no dependencies, no runtime APIs.
 
 ## Usage
 
 ```ts
-import { curl } from 'https://raw.githubusercontent.com/hernancerm/curler/v0.1.0/mod.ts';
+import { curl } from 'jsr:@hernancerm/curler@0.1.0';
 
 const cmd = curl('POST', 'http://localhost:8080/api/v1/contacts')
   .headers({
@@ -33,14 +33,17 @@ curl \
   -d '{"name":"John Doe","phone":"9992738355"}'
 ```
 
-Pin the version in the URL, as above. Deno caches an import the first time it sees it, so a
-moving target like `main` gives you a stale copy until you run `deno cache --reload`.
+Pin the version, as above. Deno caches an import the first time it sees it, so a moving target gives
+you a stale copy until you run `deno cache --reload`.
+
+Nothing here touches a runtime API, so this module also runs on Node, Bun and the browser. Only the
+commands built on top of it are Deno-only.
 
 ## The `curl` function
 
 ```ts
-curl(url)           // method is GET
-curl(method, url)
+curl(url); // method is GET
+curl(method, url);
 ```
 
 The result stringifies itself, so `console.log(cmd)` and `` `${cmd}` `` both work. There is no
@@ -52,22 +55,21 @@ The result stringifies itself, so `console.log(cmd)` and `` `${cmd}` `` both wor
 
 Every one of them returns the builder, so they chain in any order.
 
-- `.headers({ name: value })` adds one `-H` per entry. Call it again to add more. A repeated
-  name wins, ignoring case.
+- `.headers({ name: value })` adds one `-H` per entry. Call it again to add more. A repeated name
+  wins, ignoring case.
 - `.header(name, value)` adds one header.
 - `.json(value)` sets `-d` to the JSON, plus a `Content-Type: application/json` header.
 - `.body(string)` sets `-d` to the string as given. No header is guessed.
 - `.form({ name: value })` adds one `-F` per entry. Prefix a value with `@` to send a file.
-- `.query({ name: value })` appends to the query string, percent-encoded. Respects a `?`
-  already in the url.
+- `.query({ name: value })` appends to the query string, percent-encoded. Respects a `?` already in
+  the url.
 - `.auth(user, password)` adds `-u user:password`.
 - `.bearer(token)` adds an `Authorization: Bearer` header.
 - `.flag('-k', ...)` passes anything else through untouched.
 - `.oneLine()` emits one line instead of backslash continuations.
 - `.toArgs()` returns the command as an array of quoted arguments.
 
-`.json()` leaves your content type alone if you set one yourself, whatever the order of the
-calls:
+`.json()` leaves your content type alone if you set one yourself, whatever the order of the calls:
 
 ```ts
 curl('POST', 'http://x')
@@ -117,19 +119,11 @@ curl -X DELETE 'http://x/api/contacts/7'
 
 ## Quoting
 
-Every value is wrapped in single quotes, and a single quote inside a value becomes `'\''`.
-That is the one form `sh` never reinterprets, so an apostrophe, a space, a `$`, a `&` or an
-accent all survive intact. The exception is `.flag()`, which is passed through as typed: it
-exists for flags, so quoting there is yours to handle.
+Every value is wrapped in single quotes, and a single quote inside a value becomes `'\''`. That is
+the one form `sh` never reinterprets, so an apostrophe, a space, a `$`, a `&` or an accent all
+survive intact. The exception is `.flag()`, which is passed through as typed: it exists for flags,
+so quoting there is yours to handle.
 
 ## Development
 
-```sh
-deno test
-deno check mod.ts
-deno lint
-```
-
-## License
-
-MIT
+`deno task check` and `deno task test` from the repo root.

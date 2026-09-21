@@ -1,15 +1,15 @@
 # curl-collection
 
-A `.ts` file is a request collection. Run one request from nvim, or export the whole file as a
-Postman collection.
+A `.ts` file is a request collection. Run one request, or export the whole file as a Postman
+collection.
 
-Requests are [curler](../curler) builders, so the command string is the same one you would paste in
-a terminal. This adds two optional notes that only the export reads.
+Requests are [curler](../curler) builders, so the command is the same one you would paste in a
+terminal. This adds two optional notes that only the export reads.
 
 ## A collection file
 
 ```ts
-import { curl } from '/Users/you/dev/repos/curl-collection/mod.ts';
+import { curl } from 'jsr:@hernancerm/curl-collection@0.1.0';
 
 const base = 'https://jsonplaceholder.typicode.com';
 const id = 1;
@@ -21,23 +21,32 @@ export const createTodo = curl('POST', `${base}/todos`)
   .json({ title: 'Buy milk', completed: false });
 ```
 
-One `export const` per request. Nothing else is required: the export name becomes the Postman item
-name, `getTodoById` reading as `Get todo by id`.
+One `export const` per request. Nothing else is required: the export name becomes the item name,
+`getTodoById` reading as `Get todo by id`.
 
 - `.name('Get todo by id')` overrides that.
 - `.desc('...')` fills Postman's description.
 
 Every other method is curler's: `.headers()`, `.json()`, `.query()`, `.bearer()`, and so on.
 
+Pin the version in the specifier. Deno caches an import the first time it sees it, so a moving
+target gives you a stale copy until `deno cache --reload`.
+
+## Run one request
+
+```sh
+curler run ./todos.ts getTodoById | curlr
+```
+
+`curler run` only prints the command. [curl-reporter](../reporter) is what sends it. Drop the pipe
+to see the curl line on its own, ready to paste somewhere.
+
 ## Export
 
 ```sh
-deno task export ./todos.ts > todos.postman.json
-deno task export ./todos.ts --name 'Todos (dev)'
+curler export ./todos.ts > todos.postman.json
+curler export ./todos.ts --name 'Todos (dev)'
 ```
-
-The task is `-A`. Exporting loads your file, so its own `fetch` or `Deno.env` calls need those
-permissions too, and naming them per file is a chore for code you wrote.
 
 The collection name defaults to the file name. Items come out sorted by export name, which is how a
 module hands its exports over.
@@ -47,20 +56,14 @@ had. There are no Postman `{{variables}}` to fill in on the other side.
 
 `.flag()` arguments are dropped: they are curl flags with no Postman equivalent.
 
-## Run one request
+## Why `isRequest` and not `instanceof`
 
-```sh
-deno task run ./todos.ts getTodoById | curlr
-```
+Your collection file imports this module by its own specifier, usually `jsr:`, while the CLI holds
+it from the workspace. Those are two copies of the class, so `instanceof Request` is false for a
+request the CLI was just handed. `isRequest()` looks for a `Symbol.for` mark instead, and that
+registry is global.
 
-The nvim side is `curler_runner.lua`: it reads the name off the `export const` around the cursor,
-writes the buffer to a temp file so unsaved edits are what run, and pipes `run.ts` into
-[curl-reporter](../curl-reporter). The cursor has to sit inside an `export const`, since that name
-is how a request is asked for.
+## Permissions
 
-## Develop
-
-```sh
-deno task check
-deno fmt
-```
+Both subcommands import your file, which runs it, so the installed `curler` carries `-A`. Naming
+permissions per collection file is a chore for code you wrote yourself.

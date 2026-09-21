@@ -1,35 +1,22 @@
 /**
  * Prints one request from a collection file as a curl command.
  *
- *   deno run -A run.ts ./todos.ts getTodoById
- *
- * Loading the file runs it, so `-A` covers whatever your own code does. Pipe the
- * output to curl-reporter to see the response.
+ * Loading the file runs it, so the CLI grants `-A` to cover whatever your own
+ * code does. Pipe the output to curl-reporter to see the response.
  */
 
 import { resolve, toFileUrl } from '@std/path';
-import { Curl } from './mod.ts';
+import { isRequest } from './mod.ts';
 
-const USAGE = `curl-collection: print one request as a curl command.
-
-  run.ts <file.ts> <export name>
-`;
-
-async function main(): Promise<number> {
-  const [file, name] = Deno.args;
-  if (file === undefined || name === undefined || file === '-h' || file === '--help') {
-    console.log(USAGE);
-    return file === undefined ? 2 : 0;
-  }
-
+export async function run(file: string, name: string): Promise<number> {
   const module = await import(toFileUrl(resolve(file)).href);
   const request = module[name];
-  if (!(request instanceof Curl)) {
+  if (!isRequest(request)) {
     const known = Object.entries(module)
-      .filter(([, value]) => value instanceof Curl)
+      .filter(([, value]) => isRequest(value))
       .map(([key]) => key);
     console.error(
-      `curl-collection: ${file} has no request exported as \`${name}\`.\n` +
+      `curler: ${file} has no request exported as \`${name}\`.\n` +
         `Exported requests: ${known.length > 0 ? known.join(', ') : '(none)'}`,
     );
     return 1;
@@ -37,8 +24,4 @@ async function main(): Promise<number> {
 
   console.log(String(request));
   return 0;
-}
-
-if (import.meta.main) {
-  Deno.exit(await main());
 }

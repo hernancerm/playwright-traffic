@@ -1,56 +1,56 @@
 # curl-reporter
 
-Runs a curl command and prints the response as markdown: status line, headers,
-pretty-printed body, and the raw output in a fold.
+Runs a curl command and prints the response as markdown: status line, headers, pretty-printed body,
+and the raw output in a fold.
 
-It adds `--write-out '%{header_json}'` and `'%{json}'` to your command, so the headers
-and the status come from curl itself, and `--dump-header` so the Raw block holds the
-real header text. Needs curl 7.83 or newer.
+It adds `--write-out '%{header_json}'` and `'%{json}'` to your command, so the headers and the
+status come from curl itself, and `--dump-header` so the Raw block holds the real header text. Needs
+curl 7.83 or newer.
 
 ## Use
 
 ```sh
-./curlr curl -s -H 'X-Foo: bar' https://api.example.com/users/42
-./curlr "curl -H 'X-Foo: bar' https://api.example.com/users/42"
-pbpaste | ./curlr
+curlr curl -s -H 'X-Foo: bar' https://api.example.com/users/42
+curlr "curl -H 'X-Foo: bar' https://api.example.com/users/42"
+pbpaste | curlr
 ```
 
 The leading `curl` is optional. Everything else goes to curl untouched.
 
-With no arguments the command is read from stdin, so a pasted "Copy as cURL" works
-as-is, backslash line continuations included.
+With no arguments the command is read from stdin, so a pasted "Copy as cURL" works as-is, backslash
+line continuations included.
 
-That mode consumes stdin, so curl cannot also read a request body from it. To pipe a
-body (`-d @-`), put the command in the arguments and leave stdin to curl:
+That mode consumes stdin, so curl cannot also read a request body from it. To pipe a body (`-d @-`),
+put the command in the arguments and leave stdin to curl:
 
 ```sh
-cat body.json | ./curlr curl -X POST -H 'Content-Type: application/json' \
+cat body.json | curlr curl -X POST -H 'Content-Type: application/json' \
   -d @- https://api.example.com/users
 ```
 
 ## Install
 
-```sh
-deno task install   # puts `curlr` on your PATH
-```
+`deno task install` from the repo root puts `curlr` on your PATH.
 
-It needs `--allow-read` and `--allow-write` on top of `--allow-run=curl`: curl's
-`--dump-header` writes the header text to a temp file, which is then read and removed.
+It needs `--allow-read` and `--allow-write` on top of `--allow-run=curl`: curl's `--dump-header`
+writes the header text to a temp file, which is then read and removed.
 
 ## Output
 
-````
-# 200 OK
+````text
+# ✓ 200 OK
 
 Headers{{{
+```http
 content-type: application/json
+```
 }}}
 
 ```json
 {
   "id": 42
 }
-````
+```
 
 Raw{{{
 HTTP/2 200
@@ -58,13 +58,11 @@ content-type: application/json
 
 {"id":42}
 }}}
-
 ````
-The `{{{` / `}}}` markers are vim fold markers (`:h fold-marker`).
+
+The `{{{` / `}}}` markers are vim fold markers (`:h fold-marker`), so the header and raw blocks come
+up folded in a buffer with `foldmethod=marker`.
 
 ## Develop
 
-```sh
-deno task test
-deno fmt
-````
+`deno task test` and `deno fmt` from the repo root.

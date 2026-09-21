@@ -1,13 +1,5 @@
 {
-  "name": "curl-reporter",
+  "name": "@hernancerm/curl-reporter",
   "version": "0.1.0",
-  "exports": "./main.ts",
-  "tasks": {
-    "run": "deno run --allow-run=curl --allow-read --allow-write main.ts",
-    "test": "deno test --allow-run=curl --allow-net --allow-read --allow-write",
-    "install": "deno install --global --force --allow-run=curl --allow-read --allow-write --name curlr main.ts"
-  },
-  "fmt": {
-    "lineWidth": 88
-  }
+  "exports": "./main.ts"
 }

@@ -1,22 +1,12 @@
 /**
  * Turns a file of exported requests into a Postman v2.1 collection on stdout.
  *
- *   deno run --allow-read export.ts ./todos.ts > todos.postman.json
- *
  * Values are already substituted by the time we see them: a `${id}` in the
  * source becomes the literal value, never a Postman `{{id}}`.
  */
 
-import { basename, resolve, toFileUrl } from 'jsr:@std/path@1';
-import { Request } from './mod.ts';
-
-const USAGE = `curl-collection: export a requests file as a Postman collection.
-
-  export.ts <file.ts> [--name <collection name>]
-
-Every \`export const\` holding a curl(...) request becomes an item. The export
-name is the item name unless the request sets .name().
-`;
+import { basename, resolve, toFileUrl } from '@std/path';
+import { isRequest, type Request } from './mod.ts';
 
 interface Item {
   name: string;
@@ -135,31 +125,17 @@ function toItem(name: string, request: Request): Item {
   return item;
 }
 
-async function main(): Promise<number> {
-  const args = [...Deno.args];
-  if (args.length === 0 || args[0] === '-h' || args[0] === '--help') {
-    console.log(USAGE);
-    return args.length === 0 ? 2 : 0;
-  }
-
-  const file = args.shift()!;
-  let collectionName = basename(file).replace(/\.ts$/, '');
-  if (args[0] === '--name') {
-    if (args[1] === undefined) {
-      console.error('curl-collection: --name needs a value');
-      return 2;
-    }
-    collectionName = args[1];
-  }
+export async function exportPostman(file: string, name?: string): Promise<number> {
+  const collectionName = name ?? basename(file).replace(/\.ts$/, '');
 
   const module = await import(toFileUrl(resolve(file)).href);
   // A module's exports come back sorted by name, so items are alphabetical.
   const items = Object.entries(module)
-    .filter((entry): entry is [string, Request] => entry[1] instanceof Request)
+    .filter((entry): entry is [string, Request] => isRequest(entry[1]))
     .map(([key, request]) => toItem(humanize(key), request));
 
   if (items.length === 0) {
-    console.error(`curl-collection: no exported curl(...) requests in ${file}`);
+    console.error(`curler: no exported curl(...) requests in ${file}`);
     return 1;
   }
 
@@ -172,8 +148,4 @@ async function main(): Promise<number> {
   };
   console.log(JSON.stringify(collection, null, 2));
   return 0;
-}
-
-if (import.meta.main) {
-  Deno.exit(await main());
 }

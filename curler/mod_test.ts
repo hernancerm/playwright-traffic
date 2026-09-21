@@ -1,4 +1,4 @@
-import { assertEquals } from 'jsr:@std/assert@1';
+import { assertEquals } from '@std/assert';
 import { curl } from './mod.ts';
 
 Deno.test('one arg implies GET and omits -X', () => {

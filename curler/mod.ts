@@ -171,9 +171,7 @@ export function curl(url: string): Curl;
 export function curl(method: Method, url: string): Curl;
 export function curl(methodOrUrl: string, maybeUrl?: string): Curl {
   // One argument is the url; the method is only ever the first of two.
-  return maybeUrl === undefined
-    ? new Curl('GET', methodOrUrl)
-    : new Curl(methodOrUrl, maybeUrl);
+  return maybeUrl === undefined ? new Curl('GET', methodOrUrl) : new Curl(methodOrUrl, maybeUrl);
 }
 
 export default curl;

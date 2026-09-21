@@ -5,7 +5,7 @@
  */
 export function tokenize(line: string): string[] {
   const tokens: string[] = [];
-  let current = "";
+  let current = '';
   let started = false;
   let quote: '"' | "'" | null = null;
 
@@ -22,7 +22,7 @@ export function tokenize(line: string): string[] {
     }
 
     if (quote === '"') {
-      if (ch === "\\" && i + 1 < line.length && '"\\$`'.includes(line[i + 1])) {
+      if (ch === '\\' && i + 1 < line.length && '"\\$`'.includes(line[i + 1])) {
         current += line[++i];
       } else if (ch === '"') {
         quote = null;
@@ -32,10 +32,10 @@ export function tokenize(line: string): string[] {
       continue;
     }
 
-    if (ch === "\\" && i + 1 < line.length) {
+    if (ch === '\\' && i + 1 < line.length) {
       const next = line[++i];
       // A backslash-newline is a line continuation: it disappears entirely.
-      if (next !== "\n") {
+      if (next !== '\n') {
         current += next;
         started = true;
       }
@@ -52,7 +52,7 @@ export function tokenize(line: string): string[] {
       if (started) {
         tokens.push(current);
       }
-      current = "";
+      current = '';
       started = false;
       continue;
     }
