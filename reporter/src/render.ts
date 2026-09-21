@@ -1,4 +1,5 @@
 import { reasonPhrase } from './status.ts';
+import type { Request } from './request.ts';
 
 export type Headers = Record<string, string[]>;
 
@@ -7,6 +8,7 @@ export interface Report {
   headers: Headers;
   body: string;
   raw: string;
+  request?: Request;
 }
 
 function renderHeading(stats: Record<string, unknown>): string {
@@ -20,6 +22,37 @@ function renderHeading(stats: Record<string, unknown>): string {
   const mark = code < 400 ? '✓' : '✗';
   const reason = reasonPhrase(code);
   return reason ? `# ${mark} ${code} ${reason}` : `# ${mark} ${code}`;
+}
+
+/** `POST https://x/todos`, so the report says what was called, not just how it went. */
+function renderTarget(stats: Record<string, unknown>): string | undefined {
+  const method = typeof stats.method === 'string' ? stats.method : '';
+  const url = typeof stats.url === 'string' ? stats.url : '';
+  if (!url) {
+    return undefined;
+  }
+  const line = method ? `${method} ${url}` : url;
+  // url_effective is where curl ended up, so it only adds anything after a redirect.
+  const effective = stats.url_effective;
+  if (typeof effective === 'string' && effective !== url) {
+    return `${line}\n-> ${effective}`;
+  }
+  return line;
+}
+
+/** A list of `Name: value` as curl was given them, fenced for highlighting. */
+function renderRequestHeaders(request: Request | undefined): string | undefined {
+  if (!request || request.headers.length === 0) {
+    return undefined;
+  }
+  return '```http\n' + request.headers.join('\n') + '\n```';
+}
+
+function renderRequestBody(request: Request | undefined): string | undefined {
+  if (!request || request.body === undefined || request.body === '') {
+    return undefined;
+  }
+  return renderBody(request.body);
 }
 
 function renderHeaders(headers: Headers): string {
@@ -52,10 +85,17 @@ function fold(label: string, contents: string): string {
 }
 
 export function render(report: Report): string {
-  return [
+  const requestHeaders = renderRequestHeaders(report.request);
+  const requestBody = renderRequestBody(report.request);
+  // A GET usually has neither, and an absent fold reads better than an empty one.
+  const sections = [
     renderHeading(report.stats),
-    fold('Headers', renderHeaders(report.headers)),
+    renderTarget(report.stats),
+    requestHeaders && fold('Request headers', requestHeaders),
+    requestBody && fold('Request body', requestBody),
+    fold('Response headers', renderHeaders(report.headers)),
     renderBody(report.body),
     fold('Raw', report.raw.replace(/\n+$/, '')),
-  ].join('\n\n') + '\n';
+  ];
+  return sections.filter((s) => s !== undefined && s !== '').join('\n\n') + '\n';
 }

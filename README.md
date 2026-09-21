@@ -36,7 +36,7 @@ curler export ./todos.ts > todos.postman.json
 
 - Send the request under the cursor to a split in Neovim, unsaved edits included.
 - Print a request as a curl command, ready to paste into a terminal or a bug report.
-- Render the response as markdown: status line, headers, pretty-printed body, raw output in a fold.
+- Render the exchange as markdown: the method and url curl used, what was sent, what came back.
 - Export the whole file as a Postman v2.1 collection.
 - Substitute values in TypeScript, so a `${id}` reaches curl as the value it had.
 - Read a token from `Deno.env`, a file, or a `fetch`, since a collection file is a program.

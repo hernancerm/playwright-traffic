@@ -1,5 +1,6 @@
 import { assertEquals } from '@std/assert';
 import { render } from '../src/render.ts';
+import { parseRequest } from '../src/request.ts';
 import { tokenize } from '../src/tokenize.ts';
 
 Deno.test('renders a json response', () => {
@@ -14,7 +15,7 @@ Deno.test('renders a json response', () => {
     [
       '# ✓ 200 OK',
       '',
-      'Headers{{{',
+      'Response headers{{{',
       '```http',
       'content-type: application/json',
       '```',
@@ -70,4 +71,66 @@ Deno.test('tokenize handles quotes and continuations', () => {
     ['curl', '-H', 'X-Foo: a b', '-d', '{"a": 1}', 'https://x.test'],
   );
   assertEquals(tokenize("curl --data ''  url"), ['curl', '--data', '', 'url']);
+});
+
+Deno.test('the target line says what was called', () => {
+  const out = render({
+    stats: { response_code: 201, method: 'POST', url: 'https://x.test/todos' },
+    headers: {},
+    body: '',
+    raw: '',
+  });
+  assertEquals(out.split('\n')[2], 'POST https://x.test/todos');
+});
+
+Deno.test('a redirect shows where it ended up', () => {
+  const out = render({
+    stats: {
+      response_code: 200,
+      method: 'GET',
+      url: 'http://x.test/a',
+      url_effective: 'https://x.test/b',
+    },
+    headers: {},
+    body: '',
+    raw: '',
+  });
+  assertEquals(out.includes('GET http://x.test/a\n-> https://x.test/b'), true);
+});
+
+Deno.test('request folds appear only when there is something to show', () => {
+  const get = render({
+    stats: { response_code: 200, method: 'GET', url: 'https://x.test/1' },
+    headers: {},
+    body: '',
+    raw: '',
+    request: { headers: [] },
+  });
+  assertEquals(get.includes('Request headers'), false);
+  assertEquals(get.includes('Request body'), false);
+
+  const post = render({
+    stats: { response_code: 201, method: 'POST', url: 'https://x.test/todos' },
+    headers: {},
+    body: '',
+    raw: '',
+    request: { headers: ['Content-Type: application/json'], body: '{"a":1}' },
+  });
+  assertEquals(post.includes('Request headers{{{\n```http\nContent-Type: application/json'), true);
+  assertEquals(post.includes('Request body{{{\n```json\n{\n  "a": 1\n}'), true);
+});
+
+Deno.test('parseRequest reads headers and every -d spelling', () => {
+  assertEquals(
+    parseRequest(['-H', 'A: 1', '--header', 'B: 2', '--data-raw', 'x=1', 'https://x.test']),
+    { headers: ['A: 1', 'B: 2'], body: 'x=1' },
+  );
+  // curl concatenates repeated -d with `&`.
+  assertEquals(parseRequest(['-d', 'a=1', '-d', 'b=2']).body, 'a=1&b=2');
+  // A form is fields, not one blob, so each gets a line.
+  assertEquals(
+    parseRequest(['-F', 'file=@a.png', '-F', 'kind=avatar']).body,
+    'file=@a.png\nkind=avatar',
+  );
+  assertEquals(parseRequest(['https://x.test']), { headers: [], body: undefined });
 });

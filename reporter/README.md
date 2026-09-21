@@ -2,8 +2,8 @@
 
 Part of [curler](..). Backs `curler run-curl`.
 
-Runs a curl command and prints the response as markdown: status line, headers, pretty-printed body,
-and the raw output in a fold.
+Runs a curl command and prints the exchange as markdown: status line, what was called, the request
+headers and body, the response headers, a pretty-printed body, and the raw output in a fold.
 
 It adds `--write-out '%{header_json}'` and `'%{json}'` to your command, so the headers and the
 status come from curl itself, and `--dump-header` so the Raw block holds the real header text. Needs
@@ -43,9 +43,25 @@ writes the header text to a temp file, which is then read and removed.
 ## Output
 
 ````text
-# ✓ 200 OK
+# ✓ 201 Created
 
-Headers{{{
+POST https://api.example.com/users
+
+Request headers{{{
+```http
+Content-Type: application/json
+```
+}}}
+
+Request body{{{
+```json
+{
+  "name": "Ada"
+}
+```
+}}}
+
+Response headers{{{
 ```http
 content-type: application/json
 ```
@@ -58,15 +74,24 @@ content-type: application/json
 ```
 
 Raw{{{
-HTTP/2 200
+HTTP/2 201
 content-type: application/json
 
 {"id":42}
 }}}
 ````
 
-The `{{{` / `}}}` markers are vim fold markers (`:h fold-marker`), so the header and raw blocks come
-up folded in a buffer with `foldmethod=marker`.
+The method and url come from curl's `--write-out`, so they are what curl really used. After a
+redirect the line curl ended on follows, as `-> <url>`.
+
+The request headers and body are read back off the command, since curl reports nothing about what it
+sent. So they are the `-H`, `-d` and `-F` you passed, not curl's implicit `Host`, `User-Agent` and
+`Accept`, and not the `Authorization` that `-u` generates.
+
+Both request folds are omitted when there is nothing in them, which is the usual case for a GET.
+
+The `{{{` / `}}}` markers are vim fold markers (`:h fold-marker`), so every block comes up folded in
+a buffer with `foldmethod=marker`.
 
 ## Develop
 

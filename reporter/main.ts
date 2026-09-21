@@ -1,4 +1,5 @@
 import { type Headers, render } from './src/render.ts';
+import { parseRequest } from './src/request.ts';
 import { tokenize } from './src/tokenize.ts';
 
 const USAGE = `curl-reporter: run a curl command, print the response as markdown.
@@ -55,6 +56,7 @@ async function main(): Promise<number> {
   // curl has no write-out variable for the headers as they came off the wire, so
   // --dump-header takes them to a file, out of the way of the body on stdout.
   const headerFile = await Deno.makeTempFile({ prefix: 'curlr-' });
+  const requestArgs = curlArgs(args);
 
   let code: number;
   let stdout: Uint8Array;
@@ -63,7 +65,7 @@ async function main(): Promise<number> {
     const command = new Deno.Command('curl', {
       // Ours come last so they win over anything the caller passed.
       args: [
-        ...curlArgs(args),
+        ...requestArgs,
         '--silent',
         '--show-error',
         '--dump-header',
@@ -109,7 +111,9 @@ async function main(): Promise<number> {
   const raw = headerText.replaceAll('\r\n', '\n').replace(/\n+$/, '') + '\n\n' + body;
 
   await Deno.stdout.write(
-    new TextEncoder().encode(render({ stats, headers, body, raw })),
+    new TextEncoder().encode(
+      render({ stats, headers, body, raw, request: parseRequest(requestArgs) }),
+    ),
   );
   return code;
 }
