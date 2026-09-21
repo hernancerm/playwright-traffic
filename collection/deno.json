@@ -4,5 +4,8 @@
   "exports": {
     ".": "./mod.ts",
     "./cli": "./cli.ts"
+  },
+  "imports": {
+    "@std/path": "jsr:@std/path@1"
   }
 }

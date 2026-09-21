@@ -25,8 +25,24 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@std/assert@1",
       "jsr:@std/path@1"
-    ]
+    ],
+    "members": {
+      "collection": {
+        "dependencies": [
+          "jsr:@std/path@1"
+        ]
+      },
+      "curler": {
+        "dependencies": [
+          "jsr:@std/assert@1"
+        ]
+      },
+      "reporter": {
+        "dependencies": [
+          "jsr:@std/assert@1"
+        ]
+      }
+    }
   }
 }
