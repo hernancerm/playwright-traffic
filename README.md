@@ -5,7 +5,7 @@ real language for the values.
 
 ```ts
 // todos.ts
-import { curl } from 'jsr:@hernancerm/curl-collection@0.1.0';
+import { curl } from '@hernancerm/curl-collection';
 
 const base = 'https://jsonplaceholder.typicode.com';
 const id = 1;
@@ -17,6 +17,9 @@ export const getTodoById = curl('GET', `${base}/todos/${id}`);
 curler run ./todos.ts getTodoById | curlr     # send it, see the response
 curler export ./todos.ts > todos.postman.json # hand it to someone on Postman
 ```
+
+See [Where to keep collection files](#where-to-keep-collection-files) for the `deno.json` that makes
+that import resolve.
 
 Because the file is TypeScript, a `${id}` is substituted before curl ever sees it. There are no
 `{{variables}}` to fill in on the other side, and a token can come from `Deno.env` or a fetch you
@@ -32,6 +35,29 @@ wrote yourself.
 
 They are split because `curler/` is worth using on its own: it is one file that only builds a
 string, so it works on Deno, Node, Bun and the browser alike.
+
+## Where to keep collection files
+
+Not published anywhere yet, so a collection file finds this repo through an import map. Put a
+`deno.json` beside your collection files, once per directory:
+
+```json
+{
+  "imports": {
+    "@hernancerm/curl-collection": "/Users/you/dev/repos/curler/collection/mod.ts",
+    "@hernancerm/curler": "/Users/you/dev/repos/curler/curler/mod.ts"
+  }
+}
+```
+
+Files under this repo need none of that: `examples/todos.ts` uses the same import line, and the
+workspace resolves it.
+
+That file is also what tells your editor to use `denols` instead of a Node TypeScript server. See
+[Editor](#editor).
+
+Once the packages are published the map is deleted and the specifier becomes
+`jsr:@hernancerm/curl-collection@0.1.0`. The import line in your `.ts` does not change.
 
 ## Install
 

@@ -9,7 +9,7 @@ terminal. This adds two optional notes that only the export reads.
 ## A collection file
 
 ```ts
-import { curl } from 'jsr:@hernancerm/curl-collection@0.1.0';
+import { curl } from '@hernancerm/curl-collection';
 
 const base = 'https://jsonplaceholder.typicode.com';
 const id = 1;
@@ -29,8 +29,21 @@ One `export const` per request. Nothing else is required: the export name become
 
 Every other method is curler's: `.headers()`, `.json()`, `.query()`, `.bearer()`, and so on.
 
-Pin the version in the specifier. Deno caches an import the first time it sees it, so a moving
-target gives you a stale copy until `deno cache --reload`.
+That bare name is not published yet. It resolves through a `deno.json` beside your collection files:
+
+```json
+{
+  "imports": {
+    "@hernancerm/curl-collection": "/Users/you/dev/repos/curler/collection/mod.ts",
+    "@hernancerm/curler": "/Users/you/dev/repos/curler/curler/mod.ts"
+  }
+}
+```
+
+One per directory of collection files, not one per file. It also points your editor at `denols`,
+which otherwise reads these as Node TypeScript and resolves `Request` to the browser global.
+
+Files under this repo skip it: the workspace already resolves the name.
 
 ## Run one request
 
@@ -58,10 +71,11 @@ had. There are no Postman `{{variables}}` to fill in on the other side.
 
 ## Why `isRequest` and not `instanceof`
 
-Your collection file imports this module by its own specifier, usually `jsr:`, while the CLI holds
-it from the workspace. Those are two copies of the class, so `instanceof Request` is false for a
-request the CLI was just handed. `isRequest()` looks for a `Symbol.for` mark instead, and that
-registry is global.
+Today every route to this module ends at the same file, so `instanceof Request` would do. That stops
+holding the moment the package is published: a collection file importing
+`jsr:@hernancerm/curl-collection` reaches a different URL than the CLI's copy, Deno loads the class
+twice, and `instanceof` goes false for a request the CLI was just handed. `isRequest()` looks for a
+`Symbol.for` mark instead, and that registry is one per process, not one per module.
 
 ## Permissions
 
