@@ -11,6 +11,7 @@
  */
 
 import { buildCurl } from './curl.ts';
+import { testHurl } from './hurl.ts';
 import { exportPostman } from './postman.ts';
 
 const USAGE = `curler: run and export requests from a TypeScript collection file.
@@ -18,8 +19,9 @@ const USAGE = `curler: run and export requests from a TypeScript collection file
   curler build-curl <file.ts> <export name>        print one request as a curl command
   curler run-curl                                  send a curl command on stdin, print the response
   curler export-postman <file.ts> [--name <name>]  print a Postman v2.1 collection
+  curler test-hurl <file.ts> [<export name>]       check responses with hurl
 
-Aliases: build, run, export.
+Aliases: build, run, export, test.
 
 Every \`export const\` holding a curl(...) request is a request. The export name
 is its name unless the request sets .name().
@@ -27,6 +29,16 @@ is its name unless the request sets .name().
   curler build ./todos.ts getTodoById | curler run
   curler export ./todos.ts > todos.postman.json
   pbpaste | curler run
+
+test-hurl runs every request in the file, or the one named. What it checks is
+the request's own .assert() lines. It needs hurl on PATH, and takes
+--print to write the hurl file out instead of running it. Arguments after \`--\`
+go to hurl:
+
+  curler test ./todos.ts
+  curler test ./todos.ts getTodoById
+  curler test ./todos.ts --print > todos.hurl
+  curler test ./todos.ts -- --variable env=staging
 `;
 
 async function main(args: string[]): Promise<number> {
@@ -63,6 +75,22 @@ async function main(args: string[]): Promise<number> {
       name = flags[1];
     }
     return await exportPostman(file, name);
+  }
+
+  if (command === 'test-hurl' || command === 'test') {
+    const [file, ...flags] = rest;
+    if (file === undefined) {
+      console.error('curler: test-hurl needs a file\n');
+      console.error(USAGE);
+      return 2;
+    }
+    const at = flags.indexOf('--');
+    const hurlArgs = at === -1 ? [] : flags.slice(at + 1);
+    const own = at === -1 ? flags : flags.slice(0, at);
+    const print = own.includes('--print');
+    // Whatever is left is the export name; there is at most one.
+    const name = own.filter((flag) => flag !== '--print')[0];
+    return await testHurl(file, name, { print, hurlArgs });
   }
 
   // Reaching here means the shim did not route it, so the shim and this list

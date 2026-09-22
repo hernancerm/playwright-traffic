@@ -1,12 +1,12 @@
 # @curler/requests
 
-Part of [curler](..). Backs `curler build-curl` and `curler export-postman`.
+Part of [curler](..). Backs `curler build-curl`, `curler test-hurl` and `curler export-postman`.
 
-A `.ts` file is a request collection. Run one request, or export the whole file as a Postman
-collection.
+A `.ts` file is a request collection. Run one request, check them all against hurl, or export the
+whole file as a Postman collection.
 
 Requests are [@curler/builder](../builder) builders, so the command is the same one you would paste
-in a terminal. This adds two optional notes that only the export reads.
+in a terminal. This adds the notes the exports read and the checks hurl runs.
 
 ## A collection file
 
@@ -20,7 +20,8 @@ export const getTodoById = curl('GET', `${base}/todos/${id}`);
 
 export const createTodo = curl('POST', `${base}/todos`)
   .desc('The placeholder API fakes the write, the response is not persisted.')
-  .json({ title: 'Buy milk', completed: false });
+  .json({ title: 'Buy milk', completed: false })
+  .assert('status == 201', 'jsonpath "$.title" == "Buy milk"');
 ```
 
 One `export const` per request. Nothing else is required: the export name becomes the item name,
@@ -28,6 +29,7 @@ One `export const` per request. Nothing else is required: the export name become
 
 - `.name('Get todo by id')` overrides that.
 - `.desc('...')` fills Postman's description.
+- `.assert('status == 201')` is what `curler test` checks, the status included.
 
 Every other method is curler's: `.headers()`, `.json()`, `.query()`, `.bearer()`, and so on.
 
@@ -42,6 +44,37 @@ curler build ./todos.ts getTodoById | curler run
 
 `curler build-curl` only prints the command. [@curler/reporter](../reporter) is what sends it. Drop
 the pipe to see the curl line on its own, ready to paste somewhere.
+
+## Check the responses
+
+```sh
+curler test ./todos.ts
+curler test ./todos.ts getTodoById
+curler test ./todos.ts --print > todos.hurl
+```
+
+`.assert()` is the whole vocabulary curler adds. A line is written in
+[hurl's syntax](https://hurl.dev/docs/asserting-response.html) and handed to hurl untouched, so
+jsonpath, xpath, regex, header, cookie, duration and certificate predicates all work.
+
+The status goes in there too, as `status == 200` under hurl's `HTTP *` wildcard. hurl's `HTTP 200`
+line says the same thing but stops the entry at a mismatch, so a wrong status would hide every other
+failure.
+
+The conversion is hurlfmt's: curler prints the curl command it always prints, pipes it through
+`hurlfmt --in curl`, and appends the `[Asserts]` block. That is why `-u`, `-k`, `-L` and `--retry`
+reach hurl's `[Options]` without curler knowing what they mean.
+
+Two commands hurlfmt's curl parser cannot read, and both fail rather than run:
+
+- `.form()`, because it sends `-F`, a flag hurlfmt does not have.
+- A body holding a newline, because hurlfmt ends a quoted value at the first one.
+
+Arguments after `--` go to hurl, which is how `--variable`, `--report-html` and the rest reach it:
+
+```sh
+curler test ./todos.ts -- --variable env=staging
+```
 
 ## Export
 
@@ -68,5 +101,6 @@ registry is one per process, not one per module.
 
 ## Permissions
 
-Both subcommands import your file, which runs it, so the installed `curler` carries `-A`. Naming
-permissions per collection file is a chore for code you wrote yourself.
+Every subcommand here imports your file, which runs it, so the installed `curler` carries `-A`.
+Naming permissions per collection file is a chore for code you wrote yourself. That `-A` also covers
+spawning `hurlfmt` and `hurl`.

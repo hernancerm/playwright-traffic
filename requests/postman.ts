@@ -7,20 +7,11 @@
 
 import { basename, resolve, toFileUrl } from '@std/path';
 import { isRequest, type Request } from './mod.ts';
+import { humanize } from './name.ts';
 
 interface Item {
   name: string;
   request: Record<string, unknown>;
-}
-
-/** `getTodoById` -> `Get todo by id`, so a plain export needs no .name(). */
-function humanize(key: string): string {
-  const words = key
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .toLowerCase()
-    .trim();
-  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /** Undoes curler's `quote()`. Arguments it left bare (flags) pass through. */

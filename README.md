@@ -24,11 +24,13 @@ export const getTodoById = curl('GET', `${base}/todos/${id}`);
 
 export const createTodo = curl('POST', `${base}/todos`)
   .desc('The placeholder API fakes the write, the response is not persisted.')
-  .json({ title: 'Buy milk', completed: false });
+  .json({ title: 'Buy milk', completed: false })
+  .assert('status == 201', 'jsonpath "$.title" == "Buy milk"');
 ```
 
 ```text
 curler build ./todos.ts getTodoById | curler run
+curler test ./todos.ts
 curler export ./todos.ts > todos.postman.json
 ```
 
@@ -37,6 +39,7 @@ curler export ./todos.ts > todos.postman.json
 - Send the request under the cursor to a split in Neovim, unsaved edits included.
 - Print a request as a curl command, ready to paste into a terminal or a bug report.
 - Render the exchange as markdown: the method and url curl used, what was sent, what came back.
+- Check the responses with [hurl](https://hurl.dev), which supplies the whole assert language.
 - Export the whole file as a Postman v2.1 collection.
 - Substitute values in TypeScript, so a `${id}` reaches curl as the value it had.
 - Read a token from `Deno.env`, a file, or a `fetch`, since a collection file is a program.
@@ -51,6 +54,9 @@ curler export ./todos.ts > todos.postman.json
 - Nothing is published yet.
   - A collection file finds this repo through an import map. See
     [Where to keep collection files](#where-to-keep-collection-files).
+- `curler test` cannot send a `.form()` request, or a body holding a newline.
+  - Both are gaps in hurlfmt's curl parser, and both fail rather than run. See
+    [Verification](#verification).
 - `curler build` and `curler export` run your file.
   - Importing a module executes it, so both carry `-A`. See [Permissions](#permissions).
 - The fence on `curler run` is not a sandbox.
@@ -60,6 +66,7 @@ curler export ./todos.ts > todos.postman.json
 
 - Deno >= 2.9
 - curl >= 7.75 (for `--write-out '%{json}'` carrying the method and url)
+- hurl (optional, for `curler test`; `hurlfmt` ships with it). Verified against 8.0.1.
 - Neovim >= 0.11 (optional, for the request-under-cursor keymap)
 
 ## Installation
@@ -98,6 +105,7 @@ reading as `Get todo by id`.
 | ------------------------- | --------------------------------------------------- |
 | `.name('Get todo by id')` | Overrides the name derived from the `export const`. |
 | `.desc('...')`            | Fills Postman's description.                        |
+| `.assert('...')`          | A line for hurl's `[Asserts]`, the status included. |
 
 Every other method is the builder's: `.headers()`, `.json()`, `.query()`, `.bearer()`, `.form()`,
 `.auth()`, `.flag()`, `.oneLine()`. See [builder/README.md](./builder/README.md).
@@ -109,6 +117,7 @@ Every other method is the builder's: `.headers()`, `.json()`, `.query()`, `.bear
 | `build-curl <file.ts> <name>` | `build`  | Prints one request as a curl command.                 |
 | `run-curl`                    | `run`    | Sends a curl command from stdin, prints the response. |
 | `export-postman <file.ts>`    | `export` | Prints a Postman v2.1 collection.                     |
+| `test-hurl <file.ts> [name]`  | `test`   | Checks the responses with hurl.                       |
 
 The alias is always the full name's first word, so it is guessable.
 
@@ -120,6 +129,43 @@ curler run curl -s -H 'X-Foo: bar' https://api.example.com/users/42
 ```
 
 `curler export` takes `--name` to set the collection name, which otherwise comes from the file name.
+
+## Verification
+
+`.assert()` says what a response has to look like, and `curler test` checks it:
+
+```text
+curler test ./examples/todos.ts
+curler test ./examples/todos.ts getTodoById
+```
+
+curler writes none of that checking. It prints the curl command it always prints, pipes it through
+`hurlfmt --in curl` to get a hurl request, appends the `HTTP` and `[Asserts]` lines, and hands the
+file to `hurl --test`, whose exit code becomes curler's. So an assert line is
+[hurl's own syntax](https://hurl.dev/docs/asserting-response.html), and jsonpath, xpath, regex,
+header, cookie, duration and certificate predicates all work without curler knowing they exist.
+
+```text
+$ curler test ./examples/todos.ts getTodoById --print
+# Get todo by id
+GET https://jsonplaceholder.typicode.com/todos/1
+
+HTTP *
+[Asserts]
+status == 200
+jsonpath "$.id" == 1
+header "Content-Type" contains "json"
+```
+
+The status is an assert like any other, under hurl's `HTTP *` wildcard. hurl's `HTTP 200` line would
+say the same thing and stop the entry there, hiding every other failure behind a wrong status.
+
+`--print` writes that file out instead of running it, for a CI job that calls hurl itself. Arguments
+after `--` go to hurl: `curler test ./todos.ts -- --variable env=staging`.
+
+Leaning on hurlfmt is also where the two gaps come from. Its curl parser rejects `-F`, so `.form()`
+cannot be tested, and it ends a quoted value at the first newline, so a `.body()` holding one cannot
+either. Both stop with a message naming the request rather than sending something else.
 
 ## Where to keep collection files
 
@@ -147,10 +193,10 @@ Once the packages are published the map is deleted and the specifier becomes
 
 **One binary, two permission sets.** The shim picks by subcommand, before Deno starts.
 
-| Subcommand                     | Permissions                          | Why                              |
-| ------------------------------ | ------------------------------------ | -------------------------------- |
-| `build-curl`, `export-postman` | `-A`                                 | Importing your file runs it.     |
-| `run-curl`                     | `--allow-run=curl`, read, write, env | Spawns curl, writes a temp file. |
+| Subcommand                                  | Permissions                          | Why                              |
+| ------------------------------------------- | ------------------------------------ | -------------------------------- |
+| `build-curl`, `export-postman`, `test-hurl` | `-A`                                 | Importing your file runs it.     |
+| `run-curl`                                  | `--allow-run=curl`, read, write, env | Spawns curl, writes a temp file. |
 
 `run-curl` needs read and write on top of `--allow-run=curl` because curl's `--dump-header` writes
 the header text to a temp file, which is then read and removed. It needs env to hand curl its

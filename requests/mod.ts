@@ -18,7 +18,7 @@ export { Curl, type Method, type Primitive };
 // from one global registry, so the mark crosses that split.
 const BRAND = Symbol.for('curler-requests.request');
 
-/** The two notes a request can carry that only the Postman export reads. */
+/** The two notes a request can carry that only the exports read. */
 export interface Meta {
   /** Item name. Defaults to the `export const` name, humanized. */
   name?: string;
@@ -26,12 +26,14 @@ export interface Meta {
   desc?: string;
 }
 
-/** A {@link Curl} that also carries the notes the Postman export reads. */
+/** A {@link Curl} that also carries the notes the Postman and hurl exports read. */
 export class Request extends Curl {
   /** See `BRAND`. Set so {@link isRequest} recognises this across copies of the module. */
   readonly [BRAND] = true;
   /** Set by {@link Request.name} and {@link Request.desc}. */
   readonly meta: Meta = {};
+  /** Set by {@link Request.assert}. Lines for hurl's `[Asserts]`. */
+  readonly asserts: string[] = [];
 
   /** Overrides the name the export derives from the `export const` it is bound to. */
   name(name: string): this {
@@ -42,6 +44,22 @@ export class Request extends Curl {
   /** Postman's description field. */
   desc(desc: string): this {
     this.meta.desc = desc;
+    return this;
+  }
+
+  /**
+   * Adds lines to hurl's `[Asserts]`, each written in hurl's syntax:
+   *
+   *   .assert('status == 200', 'jsonpath "$.id" == 1')
+   *
+   * The status is one of these and not a method of its own, so that a wrong
+   * status still reports every other failure. hurl's `HTTP 200` line, which
+   * this never emits, stops the entry at the first mismatch.
+   *
+   * See https://hurl.dev/docs/asserting-response.html for the predicates.
+   */
+  assert(...asserts: string[]): this {
+    this.asserts.push(...asserts);
     return this;
   }
 }

@@ -6,6 +6,7 @@
     "./cli": "./cli.ts"
   },
   "imports": {
-    "@std/path": "jsr:@std/path@1"
+    "@std/path": "jsr:@std/path@1",
+    "@std/assert": "jsr:@std/assert@1"
   }
 }
