@@ -1,8 +1,9 @@
 import { assertEquals, assertRejects } from '@std/assert';
 import { fromFileUrl } from '@std/path';
-import { toHurl } from '../hurl.ts';
+import { toEntries, toHurl } from '../hurl.ts';
 
 const fixture = fromFileUrl(import.meta.resolve('./fixture.ts'));
+const gaps = fromFileUrl(import.meta.resolve('./gaps.ts'));
 
 // The conversion is hurlfmt's, so there is nothing to assert without it.
 const needsHurlfmt = { ignore: !hasHurlfmt() };
@@ -76,9 +77,19 @@ Deno.test('replaces a response section hurlfmt wrote itself', needsHurlfmt, asyn
   );
 });
 
+// One file per request, named after the export, is what makes hurl count them
+// one by one instead of reporting the whole collection as a single test.
+Deno.test('gives every request its own entry, keyed by export name', needsHurlfmt, async () => {
+  const entries = await toEntries(fixture);
+  assertEquals(
+    entries.map((entry) => entry.key),
+    ['createTodo', 'getTodo', 'plain', 'retried'],
+  );
+});
+
 Deno.test('rejects what hurlfmt cannot read', async () => {
-  await assertRejects(() => toHurl(fixture, 'uploaded'), Error, '.form()');
-  await assertRejects(() => toHurl(fixture, 'multiline'), Error, 'newline');
+  await assertRejects(() => toHurl(gaps, 'uploaded'), Error, '.form()');
+  await assertRejects(() => toHurl(gaps, 'multiline'), Error, 'newline');
 });
 
 Deno.test('rejects an export name the file does not have', async () => {

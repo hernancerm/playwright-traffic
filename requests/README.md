@@ -65,6 +65,11 @@ The conversion is hurlfmt's: curler prints the curl command it always prints, pi
 `hurlfmt --in curl`, and appends the `[Asserts]` block. That is why `-u`, `-k`, `-L` and `--retry`
 reach hurl's `[Options]` without curler knowing what they mean.
 
+Each request runs as a hurl file of its own, named after the export. hurl counts files, so this is
+what makes a four-request collection report as four tests and a failure read `missingTodo.hurl:6:0`.
+It also gives every request its own cookie jar. `--print` is the exception: it writes the whole
+collection as one file, which shares one.
+
 Two commands hurlfmt's curl parser cannot read, and both fail rather than run:
 
 - `.form()`, because it sends `-F`, a flag hurlfmt does not have.

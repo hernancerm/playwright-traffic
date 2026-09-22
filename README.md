@@ -140,8 +140,8 @@ curler test ./examples/todos.ts getTodoById
 ```
 
 curler writes none of that checking. It prints the curl command it always prints, pipes it through
-`hurlfmt --in curl` to get a hurl request, appends the `HTTP` and `[Asserts]` lines, and hands the
-file to `hurl --test`, whose exit code becomes curler's. So an assert line is
+`hurlfmt --in curl` to get a hurl request, appends the `[Asserts]` block, and hands the files to
+`hurl --test`, whose exit code becomes curler's. So an assert line is
 [hurl's own syntax](https://hurl.dev/docs/asserting-response.html), and jsonpath, xpath, regex,
 header, cookie, duration and certificate predicates all work without curler knowing they exist.
 
@@ -160,8 +160,26 @@ header "Content-Type" contains "json"
 The status is an assert like any other, under hurl's `HTTP *` wildcard. hurl's `HTTP 200` line would
 say the same thing and stop the entry there, hiding every other failure behind a wrong status.
 
-`--print` writes that file out instead of running it, for a CI job that calls hurl itself. Arguments
-after `--` go to hurl: `curler test ./todos.ts -- --variable env=staging`.
+Each request gets a hurl file of its own, named after the export, because hurl counts files: a
+four-request collection in one file reports as a single test, and a failure reads
+`missingTodo.hurl:6:0` rather than a line number in the middle of everything. Separate files also
+keep the requests independent, each with its own cookie jar, which is what a bag of exports is.
+
+```text
+Failure missingTodo.hurl (1 request(s) in 320 ms)
+Success listUsers.hurl (1 request(s) in 320 ms)
+Success createTodo.hurl (1 request(s) in 364 ms)
+Success getTodo.hurl (1 request(s) in 1314 ms)
+```
+
+`--print` writes the collection out as one hurl file instead of running it, for a CI job that calls
+hurl itself. That one file shares a cookie jar across its requests, where `curler test` does not.
+Arguments after `--` go to hurl, which is how `--report-html` and the rest reach it:
+
+```text
+curler test ./todos.ts -- --variable env=staging
+curler test ./todos.ts -- --report-html ./report
+```
 
 Leaning on hurlfmt is also where the two gaps come from. Its curl parser rejects `-F`, so `.form()`
 cannot be tested, and it ends a quoted value at the first newline, so a `.body()` holding one cannot

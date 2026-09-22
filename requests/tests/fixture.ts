@@ -15,11 +15,3 @@ export const plain = curl('GET', 'https://example.test/ping');
 export const retried = curl('GET', 'https://example.test/slow')
   .flag('--retry', '3')
   .assert('status == 200');
-
-export const uploaded = curl('POST', 'https://example.test/files')
-  .form({ a: '1' })
-  .assert('status == 200');
-
-export const multiline = curl('POST', 'https://example.test/text')
-  .body('line1\nline2')
-  .assert('status == 200');

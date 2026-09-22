@@ -3,10 +3,11 @@
  *
  * `hurlfmt --in curl` turns curler's own curl command into a hurl request, so
  * the curl-flag to `[Options]` mapping stays hurl's to maintain. curler only
- * appends the response section that `.assert()` describes.
+ * appends the response section that `.assert()` describes, and gives each
+ * request a file of its own so hurl counts them one by one.
  */
 
-import { basename, join, resolve, toFileUrl } from '@std/path';
+import { join, resolve, toFileUrl } from '@std/path';
 import { isRequest, type Request } from './mod.ts';
 import { humanize } from './name.ts';
 
@@ -95,8 +96,17 @@ function responseSection(asserts: string[]): string | undefined {
   return ['HTTP *', '[Asserts]', ...asserts].join('\n');
 }
 
+/** One request, ready to be written as its own hurl file. */
+export interface Entry {
+  /** The export name, which is also the file name hurl reports failures under. */
+  key: string;
+  /** The hurl text: a comment naming the request, then the entry. */
+  document: string;
+}
+
 /** One request as a hurl entry, headed by a comment naming it. */
-async function toEntry(name: string, request: Request): Promise<string> {
+async function toEntry(key: string, request: Request): Promise<Entry> {
+  const name = request.meta.name ?? humanize(key);
   const gap = unconvertible(request.toArgs());
   if (gap !== undefined) {
     throw new Error(`cannot convert \`${name}\` to hurl: ${gap}`);
@@ -106,11 +116,11 @@ async function toEntry(name: string, request: Request): Promise<string> {
   const response = responseSection(request.asserts);
   const entry = response === undefined ? converted : `${withoutResponse(converted)}\n\n${response}`;
 
-  return `# ${request.meta.name ?? name}\n${entry}`;
+  return { key, document: `# ${name}\n${entry}` };
 }
 
-/** The whole hurl file for a collection, or for the one request named. */
-export async function toHurl(file: string, name?: string): Promise<string> {
+/** Every request in a collection, or the one named. */
+export async function toEntries(file: string, name?: string): Promise<Entry[]> {
   const module = await import(toFileUrl(resolve(file)).href);
   // A module's exports come back sorted by name, so entries are alphabetical.
   const requests = Object.entries(module)
@@ -125,7 +135,7 @@ export async function toHurl(file: string, name?: string): Promise<string> {
           `Exported requests: ${known.length > 0 ? known.join(', ') : '(none)'}`,
       );
     }
-    return await toEntry(humanize(found[0]), found[1]);
+    return [await toEntry(found[0], found[1])];
   }
 
   if (requests.length === 0) {
@@ -133,26 +143,45 @@ export async function toHurl(file: string, name?: string): Promise<string> {
   }
   const entries = [];
   for (const [key, request] of requests) {
-    entries.push(await toEntry(humanize(key), request));
+    entries.push(await toEntry(key, request));
   }
-  return entries.join('\n\n');
+  return entries;
 }
 
 /**
- * Hands the file to `hurl --test`, whose exit code becomes ours.
+ * The collection as one hurl file, which is what `--print` writes.
  *
- * A temp file rather than hurl's stdin: hurl names the source in every failure
- * it reports, and `todos.hurl:5:0` locates one where stdin's `-:5:0` does not.
+ * `curler test` runs a file per request instead. The difference is hurl's:
+ * requests in one file share a cookie jar, requests in separate files do not.
  */
-async function runHurl(collection: string, document: string, args: string[]): Promise<number> {
+export async function toHurl(file: string, name?: string): Promise<string> {
+  const entries = await toEntries(file, name);
+  return entries.map((entry) => entry.document).join('\n\n');
+}
+
+/**
+ * Hands the entries to `hurl --test`, whose exit code becomes ours.
+ *
+ * One file per request, not one per collection: hurl counts files, so a
+ * four-request collection in one file reports as a single test. Separate files
+ * also keep the requests independent, each with its own cookie jar, which is
+ * what a bag of exports is.
+ *
+ * Files rather than hurl's stdin, because hurl names the source in every
+ * failure it reports: `getTodoById.hurl:5:0` locates one where `-:5:0` does
+ * not. Run from the temp dir so that name stays short.
+ */
+async function runHurl(entries: Entry[], args: string[]): Promise<number> {
   const dir = await Deno.makeTempDir({ prefix: 'curler-' });
-  const path = join(dir, `${collection}.hurl`);
   try {
-    await Deno.writeTextFile(path, document + '\n');
-    // Run from the temp dir so the name hurl prints is `todos.hurl`, not the
-    // temp path it happens to sit under.
+    const names = [];
+    for (const entry of entries) {
+      const name = `${entry.key}.hurl`;
+      await Deno.writeTextFile(join(dir, name), entry.document + '\n');
+      names.push(name);
+    }
     const command = new Deno.Command('hurl', {
-      args: ['--test', ...args, basename(path)],
+      args: ['--test', ...args, ...names],
       cwd: dir,
       stdout: 'inherit',
       stderr: 'inherit',
@@ -175,18 +204,17 @@ export async function testHurl(
   name?: string,
   options: TestOptions = {},
 ): Promise<number> {
-  let document: string;
+  let entries: Entry[];
   try {
-    document = await toHurl(file, name);
+    entries = await toEntries(file, name);
   } catch (error) {
     console.error(`curler: ${error instanceof Error ? error.message : error}`);
     return 1;
   }
 
   if (options.print) {
-    console.log(document);
+    console.log(entries.map((entry) => entry.document).join('\n\n'));
     return 0;
   }
-  const collection = basename(file).replace(/\.ts$/, '');
-  return await runHurl(collection, document, options.hurlArgs ?? []);
+  return await runHurl(entries, options.hurlArgs ?? []);
 }
