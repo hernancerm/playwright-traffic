@@ -7,9 +7,9 @@
  * request a file of its own so hurl counts them one by one.
  */
 
-import { join, resolve, toFileUrl } from '@std/path';
-import { isRequest, type Request } from './mod.ts';
-import { humanize } from './name.ts';
+import { dirname, join } from '@std/path';
+import type { Curl } from '@curler/builder';
+import { type Found, load, select } from './registry.ts';
 
 /** How `curler test-hurl` was invoked. */
 export interface TestOptions {
@@ -98,52 +98,52 @@ function responseSection(asserts: string[]): string | undefined {
 
 /** One request, ready to be written as its own hurl file. */
 export interface Entry {
-  /** The export name, which is also the file name hurl reports failures under. */
-  key: string;
+  /** The registry path, which is also the file hurl reports failures under. */
+  path: string;
   /** The hurl text: a comment naming the request, then the entry. */
   document: string;
 }
 
+/** The `# ` lines above the entry: the registry path, then the .desc(). */
+function heading(path: string, desc?: string): string {
+  const lines = [`# ${path}`];
+  if (desc !== undefined) {
+    lines.push(...desc.split('\n').map((line) => `# ${line}`));
+  }
+  return lines.join('\n');
+}
+
 /** One request as a hurl entry, headed by a comment naming it. */
-async function toEntry(key: string, request: Request): Promise<Entry> {
-  const name = request.meta.name ?? humanize(key);
+async function toEntry(path: string, request: Curl): Promise<Entry> {
   const gap = unconvertible(request.toArgs());
   if (gap !== undefined) {
-    throw new Error(`cannot convert \`${name}\` to hurl: ${gap}`);
+    throw new Error(`cannot convert \`${path}\` to hurl: ${gap}`);
   }
 
   const converted = await convert(String(request));
   const response = responseSection(request.asserts);
   const entry = response === undefined ? converted : `${withoutResponse(converted)}\n\n${response}`;
 
-  return { key, document: `# ${name}\n${entry}` };
+  return { path, document: `${heading(path, request.description)}\n${entry}` };
 }
 
-/** Every request in a collection, or the one named. */
-export async function toEntries(file: string, name?: string): Promise<Entry[]> {
-  const module = await import(toFileUrl(resolve(file)).href);
-  // A module's exports come back sorted by name, so entries are alphabetical.
-  const requests = Object.entries(module)
-    .filter((entry): entry is [string, Request] => isRequest(entry[1]));
+/** Every request in a collection, or the one at `path`. */
+export async function toEntries(file: string, path?: string): Promise<Entry[]> {
+  const found = await load(file);
 
-  if (name !== undefined) {
-    const found = requests.find(([key]) => key === name);
-    if (found === undefined) {
-      const known = requests.map(([key]) => key);
-      throw new Error(
-        `${file} has no request exported as \`${name}\`.\n` +
-          `Exported requests: ${known.length > 0 ? known.join(', ') : '(none)'}`,
-      );
+  let wanted: Found[];
+  if (path !== undefined) {
+    wanted = [select(file, found, path)];
+  } else {
+    if (found.length === 0) {
+      throw new Error(`no requests in the registry of ${file}`);
     }
-    return [await toEntry(found[0], found[1])];
+    wanted = found;
   }
 
-  if (requests.length === 0) {
-    throw new Error(`no exported curl(...) requests in ${file}`);
-  }
   const entries = [];
-  for (const [key, request] of requests) {
-    entries.push(await toEntry(key, request));
+  for (const one of wanted) {
+    entries.push(await toEntry(one.path, one.request));
   }
   return entries;
 }
@@ -154,8 +154,8 @@ export async function toEntries(file: string, name?: string): Promise<Entry[]> {
  * `curler test` runs a file per request instead. The difference is hurl's:
  * requests in one file share a cookie jar, requests in separate files do not.
  */
-export async function toHurl(file: string, name?: string): Promise<string> {
-  const entries = await toEntries(file, name);
+export async function toHurl(file: string, path?: string): Promise<string> {
+  const entries = await toEntries(file, path);
   return entries.map((entry) => entry.document).join('\n\n');
 }
 
@@ -165,18 +165,21 @@ export async function toHurl(file: string, name?: string): Promise<string> {
  * One file per request, not one per collection: hurl counts files, so a
  * four-request collection in one file reports as a single test. Separate files
  * also keep the requests independent, each with its own cookie jar, which is
- * what a bag of exports is.
+ * what a registry of requests is.
  *
  * Files rather than hurl's stdin, because hurl names the source in every
- * failure it reports: `getTodoById.hurl:5:0` locates one where `-:5:0` does
- * not. Run from the temp dir so that name stays short.
+ * failure it reports: `get-todo-by-id.hurl:5:0` locates one where `-:5:0` does
+ * not. A nested registry becomes a directory, so hurl reports and the HTML
+ * report both read `cit/export-card-range.hurl`. Run from the temp dir so
+ * those paths stay relative.
  */
 async function runHurl(entries: Entry[], args: string[]): Promise<number> {
   const dir = await Deno.makeTempDir({ prefix: 'curler-' });
   try {
     const names = [];
     for (const entry of entries) {
-      const name = `${entry.key}.hurl`;
+      const name = `${entry.path}.hurl`;
+      await Deno.mkdir(join(dir, dirname(name)), { recursive: true });
       await Deno.writeTextFile(join(dir, name), entry.document + '\n');
       names.push(name);
     }
@@ -201,12 +204,12 @@ async function runHurl(entries: Entry[], args: string[]): Promise<number> {
 
 export async function testHurl(
   file: string,
-  name?: string,
+  path?: string,
   options: TestOptions = {},
 ): Promise<number> {
   let entries: Entry[];
   try {
-    entries = await toEntries(file, name);
+    entries = await toEntries(file, path);
   } catch (error) {
     console.error(`curler: ${error instanceof Error ? error.message : error}`);
     return 1;

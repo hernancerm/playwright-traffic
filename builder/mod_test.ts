@@ -1,5 +1,5 @@
 import { assertEquals } from '@std/assert';
-import { curl } from './mod.ts';
+import { curl, isCurl } from './mod.ts';
 
 Deno.test('one arg implies GET and omits -X', () => {
   assertEquals(String(curl('http://x/api')), `curl \\\n  'http://x/api'`);
@@ -55,4 +55,24 @@ Deno.test('console.log prints the command, not the object', () => {
   // What `console.log(cmd)` reaches for. Without it the output is `Curl {}`,
   // since every field is private.
   assertEquals(Deno.inspect(cmd), `curl -X DELETE 'http://x/7'`);
+});
+
+// The notes are for a runner to read. Nothing about them reaches the command,
+// so a builder used on its own is unchanged by having them.
+Deno.test('.desc() and .assert() stay out of the command', () => {
+  const cmd = curl('http://x').oneLine()
+    .desc('A note.')
+    .assert('status == 200', 'jsonpath "$.id" == 1');
+  assertEquals(String(cmd), `curl 'http://x'`);
+  assertEquals(cmd.description, 'A note.');
+  assertEquals(cmd.asserts, ['status == 200', 'jsonpath "$.id" == 1']);
+});
+
+// A runner holds its own copy of this module, so `instanceof` would be false
+// for a command a collection file built. See BRAND.
+Deno.test('isCurl tells a command from anything else', () => {
+  assertEquals(isCurl(curl('http://x')), true);
+  assertEquals(isCurl({ url: 'http://x' }), false);
+  assertEquals(isCurl('http://x'), false);
+  assertEquals(isCurl(null), false);
 });

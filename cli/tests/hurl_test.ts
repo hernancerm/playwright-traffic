@@ -18,9 +18,9 @@ function hasHurlfmt(): boolean {
 
 Deno.test('names the entry and appends the response section', needsHurlfmt, async () => {
   assertEquals(
-    await toHurl(fixture, 'getTodo'),
+    await toHurl(fixture, 'get-todo'),
     [
-      '# Get todo',
+      '# get-todo',
       'GET https://example.test/todos/1',
       '',
       'HTTP *',
@@ -32,13 +32,14 @@ Deno.test('names the entry and appends the response section', needsHurlfmt, asyn
 });
 
 Deno.test(
-  'takes the comment from .name(), and fences a json body',
+  'heads the entry with the path and .desc(), and fences a json body',
   needsHurlfmt,
   async () => {
     assertEquals(
-      await toHurl(fixture, 'createTodo'),
+      await toHurl(fixture, 'create-todo'),
       [
-        '# Make a todo',
+        '# create-todo',
+        '# Fake write.',
         'POST https://example.test/todos',
         'Content-Type: application/json',
         '```',
@@ -56,16 +57,16 @@ Deno.test(
 Deno.test('leaves out the response section when nothing is asserted', needsHurlfmt, async () => {
   assertEquals(
     await toHurl(fixture, 'plain'),
-    '# Plain\nGET https://example.test/ping',
+    '# plain\nGET https://example.test/ping',
   );
 });
 
 // --retry makes hurlfmt write `HTTP *` with `status < 500` of its own.
 Deno.test('replaces a response section hurlfmt wrote itself', needsHurlfmt, async () => {
   assertEquals(
-    await toHurl(fixture, 'retried'),
+    await toHurl(fixture, 'cit/retried'),
     [
-      '# Retried',
+      '# cit/retried',
       'GET https://example.test/slow',
       '[Options]',
       'retry: 3',
@@ -77,13 +78,14 @@ Deno.test('replaces a response section hurlfmt wrote itself', needsHurlfmt, asyn
   );
 });
 
-// One file per request, named after the export, is what makes hurl count them
-// one by one instead of reporting the whole collection as a single test.
-Deno.test('gives every request its own entry, keyed by export name', needsHurlfmt, async () => {
+// One file per request, named after its registry path, is what makes hurl count
+// them one by one instead of reporting the whole collection as a single test.
+// A nested key is a directory, which is how the HTML report shows folders.
+Deno.test('keys every entry by its registry path, in file order', needsHurlfmt, async () => {
   const entries = await toEntries(fixture);
   assertEquals(
-    entries.map((entry) => entry.key),
-    ['createTodo', 'getTodo', 'plain', 'retried'],
+    entries.map((entry) => entry.path),
+    ['get-todo', 'create-todo', 'plain', 'cit/retried'],
   );
 });
 
@@ -92,6 +94,8 @@ Deno.test('rejects what hurlfmt cannot read', async () => {
   await assertRejects(() => toHurl(gaps, 'multiline'), Error, 'newline');
 });
 
-Deno.test('rejects an export name the file does not have', async () => {
-  await assertRejects(() => toHurl(fixture, 'nope'), Error, 'Exported requests:');
+Deno.test('rejects a path the registry does not have', async () => {
+  await assertRejects(() => toHurl(fixture, 'nope'), Error, 'Requests:');
+  // A nested request is only reachable by its full path.
+  await assertRejects(() => toHurl(fixture, 'retried'), Error, 'Requests:');
 });

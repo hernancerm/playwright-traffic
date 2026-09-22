@@ -1,6 +1,6 @@
 # curler
 
-Keep HTTP requests as a TypeScript file. Send one from Neovim, or hand the file to Postman.
+Keep HTTP requests as a TypeScript file. Send one from Neovim, check them all with hurl.
 
 ## Problem
 
@@ -10,28 +10,32 @@ repo. I want that in Neovim, with a real language for the values.
 
 ## Solution
 
-A collection is a TypeScript file. Each `export const` is a request. Send the one under the cursor
-to a split, or turn the whole file into a Postman collection for someone who wants one.
+A collection is a TypeScript file whose default export is a registry: its keys name the requests,
+and a nested registry is a folder. Send the one under the cursor to a split, or check the lot.
 
 ```ts
 // todos.ts
-import { curl } from '@curler/requests';
+import { curl, type Registry } from '@curler/builder';
 
 const base = 'https://jsonplaceholder.typicode.com';
 const id = 1;
 
-export const getTodoById = curl('GET', `${base}/todos/${id}`);
+const R: Registry = {};
 
-export const createTodo = curl('POST', `${base}/todos`)
+R['get-todo-by-id'] = curl(`${base}/todos/${id}`);
+
+R['create-todo'] = curl('POST', `${base}/todos`)
   .desc('The placeholder API fakes the write, the response is not persisted.')
   .json({ title: 'Buy milk', completed: false })
   .assert('status == 201', 'jsonpath "$.title" == "Buy milk"');
+
+export default R;
 ```
 
 ```text
-curler build ./todos.ts getTodoById | curler run
+curler build ./todos.ts get-todo-by-id | curler run
 curler test ./todos.ts
-curler export ./todos.ts > todos.postman.json
+curler test ./todos.ts -- --report-html ./report
 ```
 
 ## Features
@@ -40,7 +44,7 @@ curler export ./todos.ts > todos.postman.json
 - Print a request as a curl command, ready to paste into a terminal or a bug report.
 - Render the exchange as markdown: the method and url curl used, what was sent, what came back.
 - Check the responses with [hurl](https://hurl.dev), which supplies the whole assert language.
-- Export the whole file as a Postman v2.1 collection.
+- Group requests into folders, which reach hurl as directories and the HTML report as paths.
 - Substitute values in TypeScript, so a `${id}` reaches curl as the value it had.
 - Read a token from `Deno.env`, a file, or a `fetch`, since a collection file is a program.
 - Run the builder on Node, Bun or the browser: one file, no dependencies, no runtime APIs.
@@ -57,7 +61,7 @@ curler export ./todos.ts > todos.postman.json
 - `curler test` cannot send a `.form()` request, or a body holding a newline.
   - Both are gaps in hurlfmt's curl parser, and both fail rather than run. See
     [Verification](#verification).
-- `curler build` and `curler export` run your file.
+- `curler build` and `curler test` run your file.
   - Importing a module executes it, so both carry `-A`. See [Permissions](#permissions).
 - The fence on `curler run` is not a sandbox.
   - It bounds a bug in the renderer, not a hostile command. See [Permissions](#permissions).
@@ -86,7 +90,7 @@ cd ~/dev/repos/curler && deno task install
 3. Verify:
 
 ```text
-curler build ./examples/todos.ts getTodoById | curler run
+curler build ./examples/todos.ts get-todo-by-id | curler run
 ```
 
 The shim points into the clone, so a `git pull` is the whole upgrade.
@@ -97,14 +101,34 @@ The shim points into the clone, so a `git pull` is the whole upgrade.
 
 ## Collection file
 
-One `export const` per request, and that is the whole convention: no registry to append to, no index
-to keep in sync, no file name pattern. The export name becomes the request name, `getTodoById`
-reading as `Get todo by id`.
+The file's default export is a registry. Keys name the requests and are used verbatim, so the key is
+what you type on the command line. A nested registry is a folder.
+
+```ts
+const R: Registry = {};
+
+R['get-card-range'] = curl(base);
+
+R['cit'] = {
+  'export-card-range': curl(`${base}/export`),
+};
+
+export default R;
+```
+
+```text
+curler build ./cards.ts get-card-range
+curler build ./cards.ts cit/export-card-range
+```
+
+Keys are yours: `'export card range'` and `'cit:export-card-range'` both work. Only `/` is taken,
+because it is how a path names a folder, and a key cannot be empty or `..`. Kebab-case is worth the
+habit anyway: no shell quoting, and readable hurl file names.
 
 | Method                    | What it does                                        |
 | ------------------------- | --------------------------------------------------- |
-| `.name('Get todo by id')` | Overrides the name derived from the `export const`. |
-| `.desc('...')`            | Fills Postman's description.                        |
+| `.name('Get todo by id')` | Overrides the name derived from the key.            |
+| `.desc('...')`            | A note printed above the request in the hurl file.  |
 | `.assert('...')`          | A line for hurl's `[Asserts]`, the status included. |
 
 Every other method is the builder's: `.headers()`, `.json()`, `.query()`, `.bearer()`, `.form()`,
@@ -112,14 +136,14 @@ Every other method is the builder's: `.headers()`, `.json()`, `.query()`, `.bear
 
 ## Commands
 
-| Command                       | Alias    | What it does                                          |
-| ----------------------------- | -------- | ----------------------------------------------------- |
-| `build-curl <file.ts> <name>` | `build`  | Prints one request as a curl command.                 |
-| `run-curl`                    | `run`    | Sends a curl command from stdin, prints the response. |
-| `export-postman <file.ts>`    | `export` | Prints a Postman v2.1 collection.                     |
-| `test-hurl <file.ts> [name]`  | `test`   | Checks the responses with hurl.                       |
+| Command                       | Alias   | What it does                                          |
+| ----------------------------- | ------- | ----------------------------------------------------- |
+| `build-curl <file.ts> <path>` | `build` | Prints one request as a curl command.                 |
+| `run-curl`                    | `run`   | Sends a curl command from stdin, prints the response. |
+| `test-hurl <file.ts> [path]`  | `test`  | Checks the responses with hurl.                       |
 
-The alias is always the full name's first word, so it is guessable.
+The alias is always the full name's first word, so it is guessable. A path is the registry keys
+joined with `/`.
 
 `curler run` also takes the command as arguments, which is how a pasted "Copy as cURL" works:
 
@@ -128,15 +152,13 @@ pbpaste | curler run
 curler run curl -s -H 'X-Foo: bar' https://api.example.com/users/42
 ```
 
-`curler export` takes `--name` to set the collection name, which otherwise comes from the file name.
-
 ## Verification
 
 `.assert()` says what a response has to look like, and `curler test` checks it:
 
 ```text
 curler test ./examples/todos.ts
-curler test ./examples/todos.ts getTodoById
+curler test ./examples/todos.ts get-todo-by-id
 ```
 
 curler writes none of that checking. It prints the curl command it always prints, pipes it through
@@ -146,7 +168,7 @@ curler writes none of that checking. It prints the curl command it always prints
 header, cookie, duration and certificate predicates all work without curler knowing they exist.
 
 ```text
-$ curler test ./examples/todos.ts getTodoById --print
+$ curler test ./examples/todos.ts get-todo-by-id --print
 # Get todo by id
 GET https://jsonplaceholder.typicode.com/todos/1
 
@@ -160,17 +182,21 @@ header "Content-Type" contains "json"
 The status is an assert like any other, under hurl's `HTTP *` wildcard. hurl's `HTTP 200` line would
 say the same thing and stop the entry there, hiding every other failure behind a wrong status.
 
-Each request gets a hurl file of its own, named after the export, because hurl counts files: a
-four-request collection in one file reports as a single test, and a failure reads
-`missingTodo.hurl:6:0` rather than a line number in the middle of everything. Separate files also
-keep the requests independent, each with its own cookie jar, which is what a bag of exports is.
+Each request gets a hurl file of its own, named after its registry path, because hurl counts files:
+a four-request collection in one file reports as a single test, and a failure reads
+`cit/missing-todo.hurl:6:0` rather than a line number in the middle of everything. Separate files
+also keep the requests independent, each with its own cookie jar.
 
 ```text
-Failure missingTodo.hurl (1 request(s) in 320 ms)
-Success listUsers.hurl (1 request(s) in 320 ms)
-Success createTodo.hurl (1 request(s) in 364 ms)
-Success getTodo.hurl (1 request(s) in 1314 ms)
+Failure cit/missing-todo.hurl (1 request(s) in 320 ms)
+Success cit/list-users.hurl (1 request(s) in 320 ms)
+Success create-todo.hurl (1 request(s) in 364 ms)
+Success get-todo.hurl (1 request(s) in 1314 ms)
 ```
+
+A folder is a directory, and hurl names its files relative to where it runs, which is how the same
+paths show up in `--report-html`. That report has no other knobs: no title, no grouping. If it ever
+needs them, `--report-json` is the same results as data, to render however you like.
 
 `--print` writes the collection out as one hurl file instead of running it, for a CI job that calls
 hurl itself. That one file shares a cookie jar across its requests, where `curler test` does not.
@@ -193,7 +219,6 @@ Nothing is published yet, so a collection file reaches this repo through an impo
 ```json
 {
   "imports": {
-    "@curler/requests": "/Users/you/dev/repos/curler/requests/mod.ts",
     "@curler/builder": "/Users/you/dev/repos/curler/builder/mod.ts"
   }
 }
@@ -204,17 +229,17 @@ That file is also what points your editor at `denols`. See [Editor](#editor).
 Files inside this repo need none of it: `examples/todos.ts` uses the same import line and the
 workspace resolves it.
 
-Once the packages are published the map is deleted and the specifier becomes
-`jsr:@curler/requests@0.1.0`. The import line in your `.ts` does not change.
+Once the package is published the map is deleted and the specifier becomes
+`jsr:@curler/builder@0.1.0`. The import line in your `.ts` does not change.
 
 ## Permissions
 
 **One binary, two permission sets.** The shim picks by subcommand, before Deno starts.
 
-| Subcommand                                  | Permissions                          | Why                              |
-| ------------------------------------------- | ------------------------------------ | -------------------------------- |
-| `build-curl`, `export-postman`, `test-hurl` | `-A`                                 | Importing your file runs it.     |
-| `run-curl`                                  | `--allow-run=curl`, read, write, env | Spawns curl, writes a temp file. |
+| Subcommand                | Permissions                          | Why                              |
+| ------------------------- | ------------------------------------ | -------------------------------- |
+| `build-curl`, `test-hurl` | `-A`                                 | Importing your file runs it.     |
+| `run-curl`                | `--allow-run=curl`, read, write, env | Spawns curl, writes a temp file. |
 
 `run-curl` needs read and write on top of `--allow-run=curl` because curl's `--dump-header` writes
 the header text to a temp file, which is then read and removed. It needs env to hand curl its
@@ -242,20 +267,21 @@ needs a `deno.json`, `deno.jsonc` or `deno.lock`, and `vtsls` returns early when
 ## Neovim
 
 [`curler_runner.lua`](https://github.com/hernancerm/dotfiles) sends the request under the cursor to
-a split. It reads the name off the `export const` around the cursor and writes the buffer to a temp
+a split. It reads the key off the `R['...']` line around the cursor and writes the buffer to a temp
 file, so unsaved edits are what run. The response opens as markdown with `foldmethod=marker`, so the
 header blocks come up folded.
 
 ## Packages
 
-| Path                      | Package            | What it is                            |
-| ------------------------- | ------------------ | ------------------------------------- |
-| [`builder/`](./builder)   | `@curler/builder`  | Builds curl command strings.          |
-| [`requests/`](./requests) | `@curler/requests` | A `.ts` file as a collection.         |
-| [`reporter/`](./reporter) | `@curler/reporter` | Runs a command, renders the response. |
+| Path                      | Package            | What it is                              |
+| ------------------------- | ------------------ | --------------------------------------- |
+| [`builder/`](./builder)   | `@curler/builder`  | Builds curl commands. The only library. |
+| [`cli/`](./cli)           | `@curler/cli`      | `build-curl` and `test-hurl`.           |
+| [`reporter/`](./reporter) | `@curler/reporter` | Runs a command, renders the response.   |
 
-They are split because the builder is worth using on its own: one file, no dependencies, and it
-touches no runtime API, so it runs on Deno, Node, Bun and the browser alike.
+A collection file imports the builder and nothing else. It is one file, no dependencies, and it
+touches no runtime API, so it runs on Deno, Node, Bun and the browser alike. The other two are the
+commands, which are Deno-only.
 
 ## Develop
 

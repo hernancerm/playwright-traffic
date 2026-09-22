@@ -8,7 +8,7 @@
  *
  * Not `deno install`: its shim runs with `--no-config`, and passing --config
  * makes it copy the file next to the shim, where the workspace's `./builder`,
- * `./requests` and `./reporter` no longer resolve. This names the real
+ * `./cli` and `./reporter` no longer resolve. This names the real
  * config instead.
  */
 
@@ -32,7 +32,7 @@ case "$1" in
       '${join(root, 'reporter/main.ts')}' "$@" ;;
   *)
     exec deno run --quiet --config '${config}' -A \\
-      '${join(root, 'requests/cli.ts')}' "$@" ;;
+      '${join(root, 'cli/main.ts')}' "$@" ;;
 esac
 `;
 

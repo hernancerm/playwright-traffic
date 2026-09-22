@@ -1,13 +1,24 @@
 /**
- * Builds curl command strings. It never runs anything.
+ * Builds curl command strings, and carries the notes a runner reads. It never
+ * runs anything itself.
  *
  *   curl('POST', 'http://localhost:8080/api/v1/contacts')
  *     .headers({ 'Cache-Control': 'nocache' })
  *     .json({ name: 'John Doe' })
+ *     .assert('status == 201')
  *
  * The result stringifies on its own, so `console.log(cmd)` and
  * `${cmd}` both work without a build step.
+ *
+ * `.desc()` and `.assert()` are strings this file only stores, so the no
+ * dependencies, no runtime APIs promise holds with them here.
  */
+
+// A collection file imports this class by its own specifier (`jsr:...`), while
+// a runner holds it from the workspace. Those are two copies of the class, so
+// `instanceof` is false for a request the runner was handed. `Symbol.for` reads
+// from one process-wide registry, so the mark crosses that split.
+const BRAND = Symbol.for('curler-builder.curl');
 
 /**
  * An HTTP method. The `string & {}` arm keeps autocomplete on the common verbs
@@ -33,8 +44,21 @@ function quote(value: string): string {
   return `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
+/**
+ * A tree of commands: keys name them, and a nested registry is a folder.
+ * A collection file default-exports one of these.
+ */
+export interface Registry {
+  [key: string]: Curl | Registry;
+}
+
 /** A curl command being built. Every method returns the builder, so they chain in any order. */
 export class Curl {
+  /** See `BRAND`. Set so {@link isCurl} recognises this across copies of the module. */
+  readonly [BRAND] = true;
+  #desc?: string;
+  /** Set by {@link Curl.assert}. Lines for hurl's `[Asserts]`. */
+  readonly asserts: string[] = [];
   #method: Method;
   #url: string;
   // Keyed by lowercase name so a later .headers() replaces an earlier one that
@@ -51,6 +75,33 @@ export class Curl {
   constructor(method: Method, url: string) {
     this.#method = method;
     this.#url = url;
+  }
+
+  /** A note a runner prints above the command. Nothing here reads it. */
+  desc(desc: string): this {
+    this.#desc = desc;
+    return this;
+  }
+
+  /** What {@link Curl.desc} was given, for a runner to print. */
+  get description(): string | undefined {
+    return this.#desc;
+  }
+
+  /**
+   * Adds lines to hurl's `[Asserts]`, each written in hurl's syntax:
+   *
+   *   .assert('status == 200', 'jsonpath "$.id" == 1')
+   *
+   * The status is one of these and not a method of its own, so that a wrong
+   * status still reports every other failure. hurl's `HTTP 200` line, which
+   * nothing here emits, stops the entry at the first mismatch.
+   *
+   * See https://hurl.dev/docs/asserting-response.html for the predicates.
+   */
+  assert(...asserts: string[]): this {
+    this.asserts.push(...asserts);
+    return this;
   }
 
   /** Adds one `-H` per entry. A repeated name wins, ignoring case. */
@@ -198,6 +249,11 @@ export function curl(method: Method, url: string): Curl;
 export function curl(methodOrUrl: string, maybeUrl?: string): Curl {
   // One argument is the url; the method is only ever the first of two.
   return maybeUrl === undefined ? new Curl('GET', methodOrUrl) : new Curl(methodOrUrl, maybeUrl);
+}
+
+/** True for a command from any copy of this module. See `BRAND`. */
+export function isCurl(value: unknown): value is Curl {
+  return typeof value === 'object' && value !== null && BRAND in value;
 }
 
 export default curl;

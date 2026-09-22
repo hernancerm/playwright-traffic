@@ -1,6 +1,6 @@
 # @curler/builder
 
-Builds `curl` command strings. It never runs a request.
+Builds `curl` command strings, and carries the notes a runner reads. It never runs a request.
 
 Part of [curler](..). Usable on its own.
 
@@ -71,6 +71,7 @@ Every one of them returns the builder, so they chain in any order.
 - `.flag('-k', ...)` passes anything else through untouched.
 - `.oneLine()` emits one line instead of backslash continuations.
 - `.toArgs()` returns the command as an array of quoted arguments.
+- `.desc(text)` and `.assert(line, ...)` are notes for a runner. See [Notes](#notes).
 
 `.json()` leaves your content type alone if you set one yourself, whatever the order of the calls:
 
@@ -119,6 +120,47 @@ curl('DELETE', 'http://x/api/contacts/7').oneLine();
 ```
 curl -X DELETE 'http://x/api/contacts/7'
 ```
+
+## Notes
+
+Two methods store strings this library never uses. They are here so that a command and what is
+expected of it stay one object, which is what [curler](..) needs to check a collection with
+[hurl](https://hurl.dev):
+
+```ts
+curl('POST', 'http://x/todos')
+  .json({ title: 'Buy milk' })
+  .desc('The API fakes the write.')
+  .assert('status == 201', 'jsonpath "$.title" == "Buy milk"');
+```
+
+- `.desc(text)` is a note, read back as `.description`.
+- `.assert(line, ...)` takes [hurl's assert syntax](https://hurl.dev/docs/asserting-response.html),
+  read back as `.asserts`.
+
+Neither reaches the command string, so a builder used on its own is unchanged by having them. They
+are strings and an array, so the no dependencies, no runtime APIs promise holds with them here.
+
+## Registries
+
+A `Registry` is a tree of commands: keys name them, and a nested registry is a folder. A curler
+collection file default-exports one:
+
+```ts
+import { curl, type Registry } from '@curler/builder';
+
+const R: Registry = {};
+
+R['get-card-range'] = curl(base);
+R['cit'] = { 'export-card-range': curl(`${base}/export`) };
+
+export default R;
+```
+
+`isCurl(value)` is how a runner tells a command from a nested registry. It looks for a `Symbol.for`
+mark rather than using `instanceof`, because a collection file importing `jsr:@curler/builder`
+reaches a different URL than the runner's own copy: Deno loads the class twice, and `instanceof`
+goes false for a command the runner was just handed. That symbol registry is one per process.
 
 ## Quoting
 
