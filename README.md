@@ -15,7 +15,7 @@ to a split, or turn the whole file into a Postman collection for someone who wan
 
 ```ts
 // todos.ts
-import { curl } from '@hernancerm/curl-collection';
+import { curl } from '@curler/requests';
 
 const base = 'https://jsonplaceholder.typicode.com';
 const id = 1;
@@ -46,8 +46,8 @@ curler export ./todos.ts > todos.postman.json
 ## Limitations
 
 - The commands are Deno-only.
-  - `@hernancerm/curl-builder` is portable, but the CLI loads your file at runtime, which is what
-    Deno does well and Node needs a `node_modules` beside every collection file to do.
+  - `@curler/builder` is portable, but the CLI loads your file at runtime, which is what Deno does
+    well and Node needs a `node_modules` beside every collection file to do.
 - Nothing is published yet.
   - A collection file finds this repo through an import map. See
     [Where to keep collection files](#where-to-keep-collection-files).
@@ -129,8 +129,8 @@ Nothing is published yet, so a collection file reaches this repo through an impo
 ```json
 {
   "imports": {
-    "@hernancerm/curl-collection": "/Users/you/dev/repos/curler/collection/mod.ts",
-    "@hernancerm/curl-builder": "/Users/you/dev/repos/curler/builder/mod.ts"
+    "@curler/requests": "/Users/you/dev/repos/curler/requests/mod.ts",
+    "@curler/builder": "/Users/you/dev/repos/curler/builder/mod.ts"
   }
 }
 ```
@@ -141,7 +141,7 @@ Files inside this repo need none of it: `examples/todos.ts` uses the same import
 workspace resolves it.
 
 Once the packages are published the map is deleted and the specifier becomes
-`jsr:@hernancerm/curl-collection@0.1.0`. The import line in your `.ts` does not change.
+`jsr:@curler/requests@0.1.0`. The import line in your `.ts` does not change.
 
 ## Permissions
 
@@ -184,11 +184,11 @@ header blocks come up folded.
 
 ## Packages
 
-| Path                          | Package                       | What it is                            |
-| ----------------------------- | ----------------------------- | ------------------------------------- |
-| [`builder/`](./builder)       | `@hernancerm/curl-builder`    | Builds curl command strings.          |
-| [`collection/`](./collection) | `@hernancerm/curl-collection` | A `.ts` file as a collection.         |
-| [`reporter/`](./reporter)     | `@hernancerm/curl-reporter`   | Runs a command, renders the response. |
+| Path                      | Package            | What it is                            |
+| ------------------------- | ------------------ | ------------------------------------- |
+| [`builder/`](./builder)   | `@curler/builder`  | Builds curl command strings.          |
+| [`requests/`](./requests) | `@curler/requests` | A `.ts` file as a collection.         |
+| [`reporter/`](./reporter) | `@curler/reporter` | Runs a command, renders the response. |
 
 They are split because the builder is worth using on its own: one file, no dependencies, and it
 touches no runtime API, so it runs on Deno, Node, Bun and the browser alike.

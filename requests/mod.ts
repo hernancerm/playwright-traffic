@@ -8,7 +8,7 @@
  * curler request keeps working.
  */
 
-import { Curl, type Method, type Primitive } from '@hernancerm/curl-builder';
+import { Curl, type Method, type Primitive } from '@curler/builder';
 
 export { Curl, type Method, type Primitive };
 
@@ -16,7 +16,7 @@ export { Curl, type Method, type Primitive };
 // the CLI holds it from the workspace. Those are two copies of the class, so
 // `instanceof` is false for a request the CLI was handed. `Symbol.for` reads
 // from one global registry, so the mark crosses that split.
-const BRAND = Symbol.for('curl-collection.request');
+const BRAND = Symbol.for('curler-requests.request');
 
 /** The two notes a request can carry that only the Postman export reads. */
 export interface Meta {

@@ -1,4 +1,4 @@
-# curl-builder
+# @curler/builder
 
 Builds `curl` command strings. It never runs a request.
 
@@ -35,10 +35,9 @@ curl \
   -d '{"name":"John Doe","phone":"9992738355"}'
 ```
 
-Not published yet, so that is a path. Inside this repo the workspace name `@hernancerm/curl-builder`
-works too. Once it is on JSR the line becomes `jsr:@hernancerm/curl-builder@0.1.0`, pinned: Deno
-caches an import the first time it sees it, so a moving target gives you a stale copy until
-`deno cache --reload`.
+Not published yet, so that is a path. Inside this repo the workspace name `@curler/builder` works
+too. Once it is on JSR the line becomes `jsr:@curler/builder@0.1.0`, pinned: Deno caches an import
+the first time it sees it, so a moving target gives you a stale copy until `deno cache --reload`.
 
 Nothing here touches a runtime API, so this module also runs on Node, Bun and the browser. Only the
 commands built on top of it are Deno-only.

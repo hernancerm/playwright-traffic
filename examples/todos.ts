@@ -1,4 +1,4 @@
-import { curl } from '@hernancerm/curl-collection';
+import { curl } from '@curler/requests';
 
 const base = 'https://jsonplaceholder.typicode.com';
 const id = 1;

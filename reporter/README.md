@@ -1,4 +1,4 @@
-# curl-reporter
+# @curler/reporter
 
 Part of [curler](..). Backs `curler run-curl`.
 

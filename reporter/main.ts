@@ -4,7 +4,7 @@ import { wantsRaw, withoutLinkerVars } from './src/env.ts';
 import { parseRequest } from './src/request.ts';
 import { tokenize } from './src/tokenize.ts';
 
-const USAGE = `curl-reporter: run a curl command, print the response as markdown.
+const USAGE = `curlr: run a curl command, print the response as markdown.
 
   curlr curl -s -H 'X-Foo: bar' https://api.example.com/users/42
   curlr "curl -H 'X-Foo: bar' https://api.example.com/users/42"
@@ -47,7 +47,7 @@ async function main(): Promise<number> {
     // request body from stdin (-d @-) in this mode.
     args = [await readStdin()];
     if (args[0].trim() === '') {
-      console.error('curl-reporter: empty command on stdin');
+      console.error('curlr: empty command on stdin');
       return 2;
     }
   }
@@ -107,7 +107,7 @@ async function main(): Promise<number> {
   try {
     stats = JSON.parse(statsJson);
   } catch (error) {
-    console.error(`curl-reporter: could not parse curl's write-out: ${error}`);
+    console.error(`curlr: could not parse curl's write-out: ${error}`);
     await Deno.stdout.write(stdout);
     return 1;
   }

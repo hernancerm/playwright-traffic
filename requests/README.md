@@ -1,17 +1,17 @@
-# curl-collection
+# @curler/requests
 
 Part of [curler](..). Backs `curler build-curl` and `curler export-postman`.
 
 A `.ts` file is a request collection. Run one request, or export the whole file as a Postman
 collection.
 
-Requests are [curl-builder](../builder) builders, so the command is the same one you would paste in
-a terminal. This adds two optional notes that only the export reads.
+Requests are [@curler/builder](../builder) builders, so the command is the same one you would paste
+in a terminal. This adds two optional notes that only the export reads.
 
 ## A collection file
 
 ```ts
-import { curl } from '@hernancerm/curl-collection';
+import { curl } from '@curler/requests';
 
 const base = 'https://jsonplaceholder.typicode.com';
 const id = 1;
@@ -40,8 +40,8 @@ see [Where to keep collection files](../README.md#where-to-keep-collection-files
 curler build ./todos.ts getTodoById | curler run
 ```
 
-`curler build-curl` only prints the command. [curl-reporter](../reporter) is what sends it. Drop the
-pipe to see the curl line on its own, ready to paste somewhere.
+`curler build-curl` only prints the command. [@curler/reporter](../reporter) is what sends it. Drop
+the pipe to see the curl line on its own, ready to paste somewhere.
 
 ## Export
 
@@ -61,10 +61,10 @@ had. There are no Postman `{{variables}}` to fill in on the other side.
 ## Why `isRequest` and not `instanceof`
 
 Today every route to this module ends at the same file, so `instanceof Request` would do. That stops
-holding the moment the package is published: a collection file importing
-`jsr:@hernancerm/curl-collection` reaches a different URL than the CLI's copy, Deno loads the class
-twice, and `instanceof` goes false for a request the CLI was just handed. `isRequest()` looks for a
-`Symbol.for` mark instead, and that registry is one per process, not one per module.
+holding the moment the package is published: a collection file importing `jsr:@curler/requests`
+reaches a different URL than the CLI's copy, Deno loads the class twice, and `instanceof` goes false
+for a request the CLI was just handed. `isRequest()` looks for a `Symbol.for` mark instead, and that
+registry is one per process, not one per module.
 
 ## Permissions
 

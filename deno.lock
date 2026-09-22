@@ -33,14 +33,14 @@
           "jsr:@std/assert@1"
         ]
       },
-      "collection": {
-        "dependencies": [
-          "jsr:@std/path@1"
-        ]
-      },
       "reporter": {
         "dependencies": [
           "jsr:@std/assert@1"
+        ]
+      },
+      "requests": {
+        "dependencies": [
+          "jsr:@std/path@1"
         ]
       }
     }

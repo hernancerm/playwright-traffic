@@ -1,5 +1,5 @@
 {
-  "name": "@hernancerm/curl-builder",
+  "name": "@curler/builder",
   "version": "0.1.0",
   "exports": "./mod.ts",
   "imports": {
