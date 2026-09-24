@@ -10,7 +10,7 @@ API test tells me whether it passed, not what went over the wire.
 
 ## Solution
 
-Write the requests as Playwright tests. `wirepeek show-test` runs the one at a line and prints each
+Write the requests as Playwright tests. `wirepeek` runs the one at a line and prints each
 request it sent as markdown: status, url, both bodies, both sets of headers.
 
 ```ts
@@ -33,7 +33,7 @@ test('create-todo', async ({ request }) => {
 ```
 
 ```text
-npx wirepeek show-test tests/todos.spec.ts:10
+npx wirepeek tests/todos.spec.ts:10
 npx playwright test
 ```
 
@@ -123,7 +123,7 @@ npm i -D ~/dev/repos/wirepeek/wirepeek-0.1.0.tgz
 3. Verify, with a line inside a test:
 
 ```text
-npx wirepeek show-test tests/some.spec.ts:12
+npx wirepeek tests/some.spec.ts:12
 ```
 
 Install it in each project rather than globally: it runs the project's own Playwright, and the
@@ -174,17 +174,17 @@ test('get-todo', async ({ request }) => {
 5. Run it:
 
 ```text
-npx wirepeek show-test tests/todos.spec.ts:3
+npx wirepeek tests/todos.spec.ts:3
 npx playwright test
 ```
 
 ## Command
 
-| Command                   | Alias  | What it does                                                     |
-| ------------------------- | ------ | ---------------------------------------------------------------- |
-| `show-test <file>:<line>` | `show` | Runs the nearest test at or above the line, prints its requests. |
+```text
+wirepeek <file>:<line>
+```
 
-The test run is the nearest one that starts at or above the line, like vim-test's nearest, so any
+Runs the nearest test at or above the line and prints its requests. The test run is the nearest one that starts at or above the line, like vim-test's nearest, so any
 line inside a test names it. It is then run as Playwright's own `file:line`, so a title repeated in
 another `describe` is not a problem. Without `:<line>`, every test in the file runs.
 
@@ -248,7 +248,7 @@ with one test that fails on purpose:
 
 ```text
 npx playwright test
-npx wirepeek show-test examples/todos.spec.ts:10
+npx wirepeek examples/todos.spec.ts:10
 ```
 
 ## Contributing
