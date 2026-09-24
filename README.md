@@ -15,7 +15,7 @@ request it sent as markdown: status, url, both bodies, both sets of headers.
 
 ```ts
 // tests/todos.spec.ts
-import { expect, test } from 'wirepeek';
+import { expect, test } from '@playwright/test';
 
 const base = 'https://jsonplaceholder.typicode.com';
 
@@ -83,8 +83,7 @@ content-type: application/json; charset=utf-8
 - Show the headers as sent, including the ones Playwright adds itself, e.g. `content-type` for
   `data:`.
 - Show any text body: JSON is pretty-printed, the rest is shown as it came.
-- Work on an existing Playwright project with no change to its tests. The import is optional.
-- Fail a test that asserts nothing when the server answers 4xx or 5xx, with the optional import.
+- Work on an existing Playwright project with no change to its tests.
 - Send the request under the cursor to a split in Neovim.
 
 ## Limitations
@@ -93,7 +92,8 @@ content-type: application/json; charset=utf-8
 - Only the first project that has the test runs. See [Projects](#projects).
 - Only requests sent through `request` are shown, not a page's own. See
   [Browser tests](#browser-tests).
-- The 4xx/5xx rule counts asserts made with wirepeek's `expect`. See [The rule](#the-rule).
+- Node only. Playwright runs under Deno, but wirepeek starts it with `npx`, so the test runs
+  under Node.
 - Nothing is published yet. See [Installation](#installation).
 
 ## Requirements
@@ -126,8 +126,8 @@ npm i -D ~/dev/repos/wirepeek/wirepeek-0.1.0.tgz
 npx wirepeek show-test tests/some.spec.ts:12
 ```
 
-Install it in each project rather than globally: `@playwright/test` is a peer dependency, so
-wirepeek uses the project's copy. Two copies of Playwright refuse to register tests.
+Install it in each project rather than globally: it runs the project's own Playwright, and the
+Neovim runner looks for the project's own wirepeek.
 
 ## Command
 
@@ -171,34 +171,6 @@ but their requests are left out.
 A test that opens a page records every script, image and font the page loads. Only the requests
 sent through `request` are shown, so the calls the test made are not buried.
 
-## The rule
-
-Importing `test` and `expect` from `wirepeek` instead of `@playwright/test` adds one rule: a test
-that asserts nothing fails when the server answers 4xx or 5xx.
-
-```ts
-import { expect, test } from 'wirepeek';
-
-// Fails: no asserts, and the server answered 404.
-test('missing-todo', async ({ request }) => {
-  await request.get(`${base}/todos/999999`);
-});
-
-// Passes: the 404 is what it asserts.
-test('missing-todo-is-404', async ({ request }) => {
-  const res = await request.get(`${base}/todos/999999`);
-  expect(res.status()).toBe(404);
-});
-```
-
-That lets a collection start as bare requests, run one at a time from the editor, and gain asserts
-later, without being green in the meantime while the server errors.
-
-Asserts are counted by calls to wirepeek's `expect`, including `expect.soft` and `expect.poll`. So
-import both from `wirepeek`: an `expect` from `@playwright/test` is not seen, and a test that
-asserts only with it fails on a 4xx or 5xx. The rule watches the `request` fixture only, not a
-context made with `playwright.request.newContext()`.
-
 ## Neovim
 
 [`wirepeek_runner.lua`](https://github.com/hernancerm/dotfiles) sends the test under the cursor to
@@ -224,7 +196,7 @@ which the package ships, since Node does not strip types under `node_modules`. `
 this repo runs `dist/`, so build after an edit.
 
 `examples/` is a Playwright suite against [JSONPlaceholder](https://jsonplaceholder.typicode.com),
-with two tests that fail on purpose:
+with one test that fails on purpose:
 
 ```text
 npx playwright test

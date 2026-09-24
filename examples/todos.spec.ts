@@ -1,4 +1,4 @@
-import { expect, test } from '../src/mod.ts';
+import { expect, test } from '@playwright/test';
 
 const base = 'https://jsonplaceholder.typicode.com';
 const id = 1;
@@ -24,11 +24,7 @@ test('fails-on-purpose', async ({ request }) => {
   expect(await res.json()).toMatchObject({ completed: true });
 });
 
-test('missing-todo-fails-without-asserts', async ({ request }) => {
-  await request.get(`${base}/todos/999999`);
-});
-
-test('missing-todo-passes-with-asserts', async ({ request }) => {
+test('missing-todo-is-404', async ({ request }) => {
   const res = await request.get(`${base}/todos/999999`);
   expect(res.status()).toBe(404);
 });
