@@ -144,7 +144,7 @@ interface Failed {
 
 /** Runs Playwright with the JSON reporter. A failing test exits non-zero and still reports. */
 async function playwright(root: string, args: string[]): Promise<Report | Failed> {
-  const dir = await mkdtemp(join(tmpdir(), 'curler-'));
+  const dir = await mkdtemp(join(tmpdir(), 'wirepeek-'));
   const file = join(dir, 'report.json');
   try {
     const env = { ...process.env, FORCE_COLOR: '0', PLAYWRIGHT_JSON_OUTPUT_FILE: file };
@@ -187,7 +187,7 @@ export async function showTest(location: string): Promise<number> {
   const file = resolve(at === -1 ? location : location.slice(0, at));
   const root = await projectRoot(file);
   if (root === undefined) {
-    console.error(`curler: no ${CONFIGS[0]} above ${file}`);
+    console.error(`wirepeek: no ${CONFIGS[0]} above ${file}`);
     return 2;
   }
   const target = at === -1 ? file : file + location.slice(at);
@@ -203,11 +203,11 @@ export async function showTest(location: string): Promise<number> {
     .filter((spec) => isAt(list, spec, file))
     .flatMap((spec) => spec.tests)[0]?.projectName;
   if (project === undefined) {
-    console.error(`curler: no test at ${location}`);
+    console.error(`wirepeek: no test at ${location}`);
     return 2;
   }
 
-  const output = await mkdtemp(join(tmpdir(), 'curler-'));
+  const output = await mkdtemp(join(tmpdir(), 'wirepeek-'));
   try {
     const report = await playwright(root, [
       target,

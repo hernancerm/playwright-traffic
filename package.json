@@ -1,5 +1,5 @@
 {
-  "name": "@curler/playwright",
+  "name": "wirepeek",
   "version": "0.1.0",
   "description": "Playwright's test and expect for HTTP, and a command that renders a test's requests as markdown.",
   "license": "MIT",
@@ -11,7 +11,7 @@
     }
   },
   "bin": {
-    "curler": "./dist/cli/main.js"
+    "wirepeek": "./dist/cli/main.js"
   },
   "files": [
     "dist"
