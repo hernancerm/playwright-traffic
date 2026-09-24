@@ -129,6 +129,55 @@ npx wirepeek show-test tests/some.spec.ts:12
 Install it in each project rather than globally: it runs the project's own Playwright, and the
 Neovim runner looks for the project's own wirepeek.
 
+## Quickstart
+
+A new project for API tests, from an empty directory:
+
+1. Create a Playwright project. `--quiet` takes the defaults (TypeScript, `tests/`), and
+   `--no-browsers` skips the download, since `request` needs no browser:
+
+```text
+mkdir my-api && cd my-api
+npm init -y playwright@latest -- --quiet --no-browsers
+```
+
+2. Install wirepeek, packed as in [Installation](#installation):
+
+```text
+npm i -D ~/dev/repos/wirepeek/wirepeek-0.1.0.tgz
+```
+
+3. Replace `playwright.config.ts`. The generated one is for browsers: its three projects would run
+   every API test three times, and its `html` reporter opens a browser on a failure.
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+  reporter: 'list',
+});
+```
+
+4. Replace `tests/example.spec.ts`, a browser test, with a request:
+
+```ts
+// tests/todos.spec.ts
+import { expect, test } from '@playwright/test';
+
+test('get-todo', async ({ request }) => {
+  const res = await request.get('https://jsonplaceholder.typicode.com/todos/1');
+  expect(res.status()).toBe(200);
+});
+```
+
+5. Run it:
+
+```text
+npx wirepeek show-test tests/todos.spec.ts:3
+npx playwright test
+```
+
 ## Command
 
 | Command                   | Alias  | What it does                                     |
