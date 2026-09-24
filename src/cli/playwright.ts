@@ -229,9 +229,7 @@ export async function showTest(location: string): Promise<number> {
     let failed = false;
     for (const error of report.errors ?? []) {
       failed = true;
-      sections.push(
-        `# ✗ ${stripVTControlCharacters(error.message ?? 'Playwright failed').trim()}\n`,
-      );
+      sections.push(`# ${stripVTControlCharacters(error.message ?? 'Playwright failed').trim()}\n`);
     }
     // A setup project the test depends on runs too, but its requests are not the test's.
     for (const spec of [...specs(report.suites)].filter((spec) => isAt(report, spec, file))) {
@@ -247,7 +245,7 @@ export async function showTest(location: string): Promise<number> {
           const [why, ...rest] = message.trim().split('\n');
           const detail = rest.join('\n').trim();
           sections.push(
-            `# ✗ ${spec.title}: ${why}\n` + (detail ? `\nPlaywright{{{\n${detail}\n}}}\n` : ''),
+            `# ${spec.title}: ${why}\n` + (detail ? `\nPlaywright{{{\n${detail}\n}}}\n` : ''),
           );
         }
         for (const attachment of result.attachments) {

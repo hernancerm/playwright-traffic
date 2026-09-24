@@ -38,7 +38,7 @@ npx playwright test
 ```
 
 ````text
-# ✓ 201 Created
+# 201 Created
 
 POST https://jsonplaceholder.typicode.com/todos
 
@@ -144,7 +144,7 @@ It exits 0 when the test passed, 1 when it failed, and 2 when there is no test a
 message folded under it:
 
 ```text
-# ✗ fails-on-purpose: Error: expect(received).toMatchObject(expected)
+# fails-on-purpose: Error: expect(received).toMatchObject(expected)
 
 Playwright{{{
 - Expected  - 1

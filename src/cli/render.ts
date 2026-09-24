@@ -21,12 +21,10 @@ export interface Report {
 
 function renderHeading(status: number): string {
   if (status <= 0) {
-    return '# ✗ (no response)';
+    return '# (no response)';
   }
-  // A redirect is a real answer, so 3xx is a tick; only 4xx/5xx are a cross.
-  const mark = status < 400 ? '✓' : '✗';
   const reason = reasonPhrase(status);
-  return reason ? `# ${mark} ${status} ${reason}` : `# ${mark} ${status}`;
+  return reason ? `# ${status} ${reason}` : `# ${status}`;
 }
 
 /** A list of `Name: value`, fenced for highlighting. */

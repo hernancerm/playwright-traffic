@@ -14,7 +14,7 @@ test('renders a json response', () => {
   assertEquals(
     out,
     [
-      '# ✓ 200 OK',
+      '# 200 OK',
       '',
       'GET https://x.test/1',
       '',
@@ -40,17 +40,17 @@ test('repeated headers each get a line', () => {
 
 test('non-json body uses a plain fence', () => {
   const out = render({ ...get, status: 404, headers: {}, body: 'not found' });
-  assertEquals(out.startsWith('# ✗ 404 Not Found'), true);
+  assertEquals(out.startsWith('# 404 Not Found'), true);
   assertEquals(out.includes('```\nnot found\n```'), true);
 });
 
 test('no response says so', () => {
   assertEquals(
-    render({ ...get, status: 0, headers: {}, body: '' }).startsWith('# ✗ (no response)'),
+    render({ ...get, status: 0, headers: {}, body: '' }).startsWith('# (no response)'),
     true,
   );
   assertEquals(
-    render({ ...get, status: -1, headers: {}, body: '' }).startsWith('# ✗ (no response)'),
+    render({ ...get, status: -1, headers: {}, body: '' }).startsWith('# (no response)'),
     true,
   );
 });
