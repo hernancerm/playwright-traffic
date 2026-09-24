@@ -1,11 +1,11 @@
 /**
- * Runs one Playwright test with tracing on, then renders every request it sent as the reporter's
- * markdown. The trace is where the exchange is read from because it holds what went over the
- * wire, e.g. the content-type Playwright adds for `data:`, which the test itself never sees.
+ * Runs one Playwright test with tracing on, then renders every request it sent as markdown. The
+ * trace is where the exchange is read from because it holds what went over the wire, e.g. the
+ * content-type Playwright adds for `data:`, which the test itself never sees.
  */
 
 import { dirname, join, resolve } from '@std/path';
-import { render } from '../reporter/src/render.ts';
+import { render } from './render.ts';
 
 const CONFIGS = ['playwright.config.ts', 'playwright.config.js', 'playwright.config.mjs'];
 
@@ -85,7 +85,9 @@ async function renderTrace(zip: string): Promise<string[]> {
       (headers[name.toLowerCase()] ??= []).push(value);
     }
     out.push(render({
-      stats: { response_code: response.status, method: request.method, url: request.url },
+      status: response.status,
+      method: request.method,
+      url: request.url,
       headers,
       body: await bodyText(zip, response.content),
       request: {

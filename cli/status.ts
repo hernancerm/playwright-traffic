@@ -1,5 +1,5 @@
-// Reason phrases are not available through curl's --write-out, only the numeric
-// code, so the heading text comes from this table (RFC 9110 + common extras).
+// HTTP/2 responses carry no reason phrase, so the
+// heading text comes from this table (RFC 9110 + common extras).
 const REASONS: Record<number, string> = {
   100: 'Continue',
   101: 'Switching Protocols',
