@@ -12,14 +12,16 @@
 
 import { buildCurl } from './curl.ts';
 import { testHurl } from './hurl.ts';
+import { showTest } from './playwright.ts';
 
 const USAGE = `curler: run requests from a TypeScript collection file.
 
   curler build-curl <file.ts> <path>   print one request as a curl command
   curler run-curl                      send a curl command on stdin, print the response
   curler test-hurl <file.ts> [<path>]  check responses with hurl
+  curler show-test <file.ts> <title>   run one Playwright test, print its requests
 
-Aliases: build, run, test.
+Aliases: build, run, test, show.
 
 A collection file default-exports a registry: its keys name the requests, and a
 nested registry is a folder. A path is those keys joined with \`/\`.
@@ -71,6 +73,16 @@ async function main(args: string[]): Promise<number> {
     // Whatever is left is the request path; there is at most one.
     const path = own.filter((flag) => flag !== '--print')[0];
     return await testHurl(file, path, { print, hurlArgs });
+  }
+
+  if (command === 'show-test' || command === 'show') {
+    const [file, title] = rest;
+    if (file === undefined || title === undefined) {
+      console.error('curler: show-test needs a file and a test title\n');
+      console.error(USAGE);
+      return 2;
+    }
+    return await showTest(file, title);
   }
 
   // Reaching here means the shim did not route it, so the shim and this list
