@@ -10,11 +10,11 @@ import { showTest } from './playwright.ts';
 
 const USAGE = `curler: show the requests a Playwright test sends.
 
-  curler show-test <file.ts> <title>   run one test, print its requests as markdown
+  curler show-test <file.ts>:<line>   run the test at that line, print its requests as markdown
 
 Aliases: show.
 
-  npx curler show ./todos.spec.ts create-todo
+  npx curler show ./todos.spec.ts:12
 `;
 
 async function main(args: string[]): Promise<number> {
@@ -26,13 +26,13 @@ async function main(args: string[]): Promise<number> {
   }
 
   if (command === 'show-test' || command === 'show') {
-    const [file, title] = rest;
-    if (file === undefined || title === undefined) {
-      console.error('curler: show-test needs a file and a test title\n');
+    const [location] = rest;
+    if (location === undefined) {
+      console.error('curler: show-test needs a <file.ts>:<line>\n');
       console.error(USAGE);
       return 2;
     }
-    return await showTest(file, title);
+    return await showTest(location);
   }
 
   console.error(`curler: unknown command \`${command}\`\n`);
