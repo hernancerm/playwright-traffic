@@ -6,9 +6,9 @@ import { showTest } from './playwright.ts';
 const USAGE = `wirepeek: show the requests a Playwright test sends.
 
   wirepeek <file.ts>:<line>   run the nearest test at or above the line, print its requests as
-                              markdown
+                              JSON
 
-  npx wirepeek ./todos.spec.ts:12
+  npx wirepeek ./todos.spec.ts:12 | jq
 `;
 
 async function main(args: string[]): Promise<number> {

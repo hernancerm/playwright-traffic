@@ -1,6 +1,7 @@
 # wirepeek
 
-See what a Playwright test sent and got back. Run one from Neovim, check them all with Playwright.
+See what a Playwright test sent and got back, as JSON. Run one from your editor, check them all
+with Playwright.
 
 ## Problem
 
@@ -10,8 +11,9 @@ API test tells me whether it passed, not what went over the wire.
 
 ## Solution
 
-Write the requests as Playwright tests. `wirepeek` runs the one at a line and prints each
-request it sent as markdown: status, url, both bodies, both sets of headers.
+Write the requests as Playwright tests. `wirepeek` runs the one at a line and prints each request
+it sent as JSON: status, url, both bodies, both sets of headers. Turn that into whatever you like to
+read, e.g. markdown in an editor split, or pipe it to `jq`.
 
 ```ts
 // tests/todos.spec.ts
@@ -37,54 +39,49 @@ npx wirepeek tests/todos.spec.ts:10
 npx playwright test
 ```
 
-````text
-# 201 Created
-
-POST https://jsonplaceholder.typicode.com/todos
-
-Request body{{{
 ```json
 {
-  "title": "Buy milk",
-  "completed": false
+  "tests": [
+    {
+      "title": "create-todo",
+      "file": "/home/me/my-api/tests/todos.spec.ts",
+      "line": 10,
+      "project": "",
+      "status": "passed",
+      "errors": [],
+      "exchanges": [
+        {
+          "request": {
+            "method": "POST",
+            "url": "https://jsonplaceholder.typicode.com/todos",
+            "headers": [
+              ["content-type", "application/json"],
+              ["content-length", "38"]
+            ],
+            "body": "{\"title\":\"Buy milk\",\"completed\":false}"
+          },
+          "response": {
+            "status": 201,
+            "reason": "Created",
+            "headers": [["content-type", "application/json; charset=utf-8"]],
+            "body": "{\n  \"title\": \"Buy milk\",\n  \"completed\": false,\n  \"id\": 201\n}"
+          }
+        }
+      ]
+    }
+  ],
+  "errors": []
 }
 ```
-}}}
-
-Request headers{{{
-```http
-user-agent: Playwright/1.63.0 (arm64; macOS 26.6) node/26.7
-accept: */*
-accept-encoding: gzip,deflate,br
-content-type: application/json
-content-length: 38
-```
-}}}
-
-```json
-{
-  "title": "Buy milk",
-  "completed": false,
-  "id": 201
-}
-```
-
-Response headers{{{
-```http
-content-type: application/json; charset=utf-8
-...
-```
-}}}
-````
 
 ## Features
 
-- Print the requests of the test at `file:line`, any line inside it, in the markdown shown above.
+- Print the requests of the test at `file:line`, any line inside it, as the JSON shown above.
 - Show the headers as sent, including the ones Playwright adds itself, e.g. `content-type` for
   `data:`.
-- Show any text body: JSON is pretty-printed, the rest is shown as it came.
+- Keep bodies as they were sent, and headers in their order, repeats included.
 - Work on an existing Playwright project with no change to its tests.
-- Send the request under the cursor to a split in Neovim.
+- Show the test under the cursor in a Neovim split, as markdown. See [Neovim](#neovim).
 
 ## Limitations
 
@@ -184,23 +181,28 @@ npx playwright test
 wirepeek <file>:<line>
 ```
 
-Runs the nearest test at or above the line and prints its requests. The test run is the nearest one that starts at or above the line, like vim-test's nearest, so any
-line inside a test names it. It is then run as Playwright's own `file:line`, so a title repeated in
+Runs the nearest test at or above the line and prints its requests. The test run is the nearest
+one that starts at or above the line, like vim-test's nearest, so any line inside a test names it. It is then run as Playwright's own `file:line`, so a title repeated in
 another `describe` is not a problem. Without `:<line>`, every test in the file runs.
 
 It exits 0 when the test passed, 1 when it failed, and 2 when there is no test at or above the
-line or no `playwright.config.ts` above the file. A failure comes first in the output, with
-Playwright's message folded under it:
+line or no `playwright.config.ts` above the file. Only the JSON goes to stdout. When there is none,
+e.g. Playwright could not start, the reason goes to stderr.
 
-```text
-# fails-on-purpose: Error: expect(received).toMatchObject(expected)
+### Output
 
-Playwright{{{
-- Expected  - 1
-+ Received  + 1
-...
-}}}
-```
+| Field                 | What it is                                                           |
+| --------------------- | -------------------------------------------------------------------- |
+| `tests[]`             | Each test run, usually one.                                          |
+| `tests[].status`      | Playwright's own: `passed`, `failed`, `timedOut`, `skipped`, ...     |
+| `tests[].errors[]`    | Playwright's messages, colors stripped.                              |
+| `tests[].exchanges[]` | Each request the test sent through `request`, in order.              |
+| `...request.headers`  | `[name, value]` pairs as sent. A name may repeat, e.g. `set-cookie`. |
+| `...request.body`     | The text sent, or `null` when there was none.                        |
+| `...response`         | `null` when no response came back.                                   |
+| `...response.reason`  | E.g. `Created`, from a table since HTTP/2 sends none.                |
+| `...response.body`    | The text received, not pretty-printed.                               |
+| `errors[]`            | Errors outside any test, e.g. a failed `globalSetup`.                |
 
 ### How it works
 
@@ -223,8 +225,8 @@ sent through `request` are shown, so the calls the test made are not buried.
 ## Neovim
 
 [`wirepeek_runner.lua`](https://github.com/hernancerm/dotfiles) sends the test under the cursor to
-a split. It passes the cursor's line, and wirepeek finds the test. The output opens as markdown
-with `foldmethod=marker`, so the header blocks come up folded.
+a split. It passes the cursor's line, and wirepeek finds the test. It turns the JSON into markdown
+with fold markers, so the header blocks come up folded.
 
 It runs `npx --no-install wirepeek` from the directory of the `playwright.config.ts`: npx finds the
 project's own wirepeek only from there, and `--no-install` stops it fetching one from npm when the

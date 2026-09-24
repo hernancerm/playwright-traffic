@@ -1,5 +1,5 @@
 /**
- * Runs one Playwright test with tracing on, then renders every request it sent as markdown. The
+ * Runs one Playwright test with tracing on, then prints every request it sent as JSON. The
  * trace is where the exchange is read from because it holds what went over the wire, e.g. the
  * content-type Playwright adds for `data:`, which the test itself never sees.
  */
@@ -9,7 +9,7 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { promisify, stripVTControlCharacters } from 'node:util';
-import { render } from './render.ts';
+import { exchange, type Exchange, type Output } from './output.ts';
 
 const run = promisify(execFile);
 
@@ -68,10 +68,10 @@ async function bodyText(zip: string, part: { text?: string; _file?: string }): P
   return part.text ?? '';
 }
 
-async function renderTrace(zip: string): Promise<string[]> {
+async function readTrace(zip: string): Promise<Exchange[]> {
   // The HAR entries are the `resource-snapshot` lines of the `*.network` files.
   const lines = (await unzipText(zip, '*.network')).split('\n').filter((line) => line !== '');
-  const out: string[] = [];
+  const out: Exchange[] = [];
   for (const line of lines) {
     const event = JSON.parse(line);
     if (event.type !== 'resource-snapshot') {
@@ -83,21 +83,13 @@ async function renderTrace(zip: string): Promise<string[]> {
       continue;
     }
     const { request, response } = entry;
-    const headers: Record<string, string[]> = {};
-    for (const { name, value } of response.headers) {
-      (headers[name.toLowerCase()] ??= []).push(value);
-    }
     out.push(
-      render({
-        status: response.status,
-        method: request.method,
-        url: request.url,
-        headers,
-        body: await bodyText(zip, response.content),
+      exchange({
         request: {
-          headers: request.headers.map(({ name, value }) => `${name}: ${value}`),
+          ...request,
           body: request.postData && (await bodyText(zip, request.postData)),
         },
+        response: { ...response, body: await bodyText(zip, response.content) },
       }),
     );
   }
@@ -197,7 +189,7 @@ export async function showTest(location: string): Promise<number> {
   // Listing runs nothing, and gives each test's line.
   const list = await playwright(root, [file, '--list']);
   if (isFailed(list)) {
-    console.log(list.log.trimEnd());
+    console.error(list.log.trimEnd());
     return list.code;
   }
   const listed = [...specs(list.suites)].filter((spec) => isAt(list, spec, file));
@@ -228,41 +220,38 @@ export async function showTest(location: string): Promise<number> {
       output,
     ]);
     if (isFailed(report)) {
-      console.log(report.log.trimEnd());
+      console.error(report.log.trimEnd());
       return report.code;
     }
 
-    const sections: string[] = [];
-    let failed = false;
-    for (const error of report.errors ?? []) {
-      failed = true;
-      sections.push(`# ${stripVTControlCharacters(error.message ?? 'Playwright failed').trim()}\n`);
-    }
+    // expect colors its messages even under FORCE_COLOR=0.
+    const clean = (error: { message?: string }) =>
+      stripVTControlCharacters(error.message ?? 'Playwright failed').trim();
+    const out: Output = { tests: [], errors: (report.errors ?? []).map(clean) };
     // A setup project the test depends on runs too, but its requests are not the test's.
     for (const spec of [...specs(report.suites)].filter((spec) => isAt(report, spec, file))) {
-      for (const result of spec.tests.flatMap((test) => test.results)) {
-        if (result.errors.length > 0) {
-          failed = true;
-          // The first line says why, e.g. a failed expect on a 200. The rest is the diff and
-          // the source excerpt, folded.
-          // expect colors its messages even under FORCE_COLOR=0.
-          const message = stripVTControlCharacters(
-            result.errors.map((error) => error.message ?? '').join('\n\n'),
-          );
-          const [why, ...rest] = message.trim().split('\n');
-          const detail = rest.join('\n').trim();
-          sections.push(
-            `# ${spec.title}: ${why}\n` + (detail ? `\nPlaywright{{{\n${detail}\n}}}\n` : ''),
-          );
-        }
-        for (const attachment of result.attachments) {
-          if (attachment.name === 'trace' && attachment.path) {
-            sections.push(...(await renderTrace(attachment.path)));
+      for (const test of spec.tests) {
+        for (const result of test.results) {
+          const exchanges: Exchange[] = [];
+          for (const attachment of result.attachments) {
+            if (attachment.name === 'trace' && attachment.path) {
+              exchanges.push(...(await readTrace(attachment.path)));
+            }
           }
+          out.tests.push({
+            title: spec.title,
+            file,
+            line: spec.line,
+            project: test.projectName,
+            status: result.status,
+            errors: result.errors.map(clean),
+            exchanges,
+          });
         }
       }
     }
-    console.log(sections.join('\n').trimEnd());
+    console.log(JSON.stringify(out, null, 2));
+    const failed = out.errors.length > 0 || out.tests.some((test) => test.errors.length > 0);
     return failed ? 1 : 0;
   } finally {
     await rm(output, { recursive: true, force: true });
