@@ -79,7 +79,7 @@ content-type: application/json; charset=utf-8
 
 ## Features
 
-- Print the requests of the test at `file:line`, in the markdown shown above.
+- Print the requests of the test at `file:line`, any line inside it, in the markdown shown above.
 - Show the headers as sent, including the ones Playwright adds itself, e.g. `content-type` for
   `data:`.
 - Show any text body: JSON is pretty-printed, the rest is shown as it came.
@@ -120,7 +120,7 @@ cd ~/dev/repos/wirepeek && npm install && npm pack
 npm i -D ~/dev/repos/wirepeek/wirepeek-0.1.0.tgz
 ```
 
-3. Verify, with a line that holds a `test(` call:
+3. Verify, with a line inside a test:
 
 ```text
 npx wirepeek show-test tests/some.spec.ts:12
@@ -180,17 +180,17 @@ npx playwright test
 
 ## Command
 
-| Command                   | Alias  | What it does                                     |
-| ------------------------- | ------ | ------------------------------------------------ |
-| `show-test <file>:<line>` | `show` | Runs the test at that line, prints its requests. |
+| Command                   | Alias  | What it does                                                     |
+| ------------------------- | ------ | ---------------------------------------------------------------- |
+| `show-test <file>:<line>` | `show` | Runs the nearest test at or above the line, prints its requests. |
 
-The line is where the `test(` call starts, which is Playwright's own way to name one test, so a
-title repeated in another `describe` is not a problem. A `test.describe(` line runs every test in
-it.
+The test run is the nearest one that starts at or above the line, like vim-test's nearest, so any
+line inside a test names it. It is then run as Playwright's own `file:line`, so a title repeated in
+another `describe` is not a problem. Without `:<line>`, every test in the file runs.
 
-It exits 0 when the test passed, 1 when it failed, and 2 when there is no test at that line or no
-`playwright.config.ts` above the file. A failure comes first in the output, with Playwright's
-message folded under it:
+It exits 0 when the test passed, 1 when it failed, and 2 when there is no test at or above the
+line or no `playwright.config.ts` above the file. A failure comes first in the output, with
+Playwright's message folded under it:
 
 ```text
 # fails-on-purpose: Error: expect(received).toMatchObject(expected)
@@ -223,9 +223,8 @@ sent through `request` are shown, so the calls the test made are not buried.
 ## Neovim
 
 [`wirepeek_runner.lua`](https://github.com/hernancerm/dotfiles) sends the test under the cursor to
-a split. It climbs the syntax tree from the cursor to the enclosing `test(` call, skipping
-`test.step(`, and passes its line. The output opens as markdown with `foldmethod=marker`, so the
-header blocks come up folded.
+a split. It passes the cursor's line, and wirepeek finds the test. The output opens as markdown
+with `foldmethod=marker`, so the header blocks come up folded.
 
 It runs `npx --no-install wirepeek` from the directory of the `playwright.config.ts`: npx finds the
 project's own wirepeek only from there, and `--no-install` stops it fetching one from npm when the

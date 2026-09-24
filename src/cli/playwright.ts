@@ -115,6 +115,7 @@ interface Suite {
   specs?: {
     title: string;
     file: string;
+    line: number;
     tests: {
       projectName: string;
       results: {
@@ -179,33 +180,39 @@ function isAt(report: Report, spec: Spec, file: string): boolean {
 }
 
 /**
- * `location` is Playwright's `file:line`, which names one test even when another in the file
- * shares its title. A describe's line names every test in it.
+ * `location` is `file:line`, and the test run is the nearest one at or above that line, like
+ * vim-test's nearest: any line inside a test names it. Without a line, every test in the file
+ * runs.
  */
 export async function showTest(location: string): Promise<number> {
-  const at = location.lastIndexOf(':');
-  const file = resolve(at === -1 ? location : location.slice(0, at));
+  const match = /^(.*):(\d+)$/.exec(location);
+  const file = resolve(match ? match[1] : location);
+  const cursor = match ? Number(match[2]) : undefined;
   const root = await projectRoot(file);
   if (root === undefined) {
     console.error(`wirepeek: no ${CONFIGS[0]} above ${file}`);
     return 2;
   }
-  const target = at === -1 ? file : file + location.slice(at);
 
-  // Every project would run the test again, e.g. a POST once per browser, so only the first
-  // project that has it runs. Listing runs nothing.
-  const list = await playwright(root, [target, '--list']);
+  // Listing runs nothing, and gives each test's line.
+  const list = await playwright(root, [file, '--list']);
   if (isFailed(list)) {
     console.log(list.log.trimEnd());
     return list.code;
   }
-  const project = [...specs(list.suites)]
-    .filter((spec) => isAt(list, spec, file))
-    .flatMap((spec) => spec.tests)[0]?.projectName;
+  const listed = [...specs(list.suites)].filter((spec) => isAt(list, spec, file));
+  const above = cursor === undefined ? listed : listed.filter((spec) => spec.line <= cursor);
+  const line = cursor === undefined ? undefined : Math.max(...above.map((spec) => spec.line));
+  // Tests made in a loop share a line, and Playwright runs `file:line` as all of them.
+  const chosen = line === undefined ? above : above.filter((spec) => spec.line === line);
+  // Every project would run the test again, e.g. a POST once per browser, so only the first
+  // project that has it runs.
+  const project = chosen.flatMap((spec) => spec.tests)[0]?.projectName;
   if (project === undefined) {
-    console.error(`wirepeek: no test at ${location}`);
+    console.error(`wirepeek: no test at or above ${location}`);
     return 2;
   }
+  const target = line === undefined ? file : `${file}:${line}`;
 
   const output = await mkdtemp(join(tmpdir(), 'wirepeek-'));
   try {

@@ -10,7 +10,8 @@ import { showTest } from './playwright.ts';
 
 const USAGE = `wirepeek: show the requests a Playwright test sends.
 
-  wirepeek show-test <file.ts>:<line>   run the test at that line, print its requests as markdown
+  wirepeek show-test <file.ts>:<line>   run the nearest test at or above the line, print its
+                                        requests as markdown
 
 Aliases: show.
 
