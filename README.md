@@ -12,8 +12,8 @@ API test tells me whether it passed, not what went over the wire.
 ## Solution
 
 Write the requests as Playwright tests. `playwright-traffic` runs the one at a line and prints each
-request it sent as JSON: status, url, both bodies, both sets of headers. Turn that into whatever you
-like to read, e.g. markdown in an editor split, or pipe it to `jq`.
+request it sent as JSON: status, url, both bodies, both sets of headers. Pipe it to `jq`, turn it
+into whatever you like to read, or ask for markdown with `--format=markdown+vim-folds`.
 
 ```ts
 // tests/todos.spec.ts
@@ -81,6 +81,7 @@ npx playwright test
   `data:`.
 - Keep bodies as they were sent, and headers in their order, repeats included.
 - Work on an existing Playwright project with no change to its tests.
+- Print markdown instead, with the details in Vim fold markers. See [Formats](#formats).
 - Show the test under the cursor in a Neovim split, as markdown. See [Neovim](#neovim).
 
 ## Limitations
@@ -178,7 +179,7 @@ npx playwright test
 ## Command
 
 ```text
-playwright-traffic <file>:<line>
+playwright-traffic [--format=<format>] <file>:<line>
 ```
 
 Runs the nearest test at or above the line and prints its requests. The test run is the nearest
@@ -205,6 +206,19 @@ e.g. Playwright could not start, the reason goes to stderr.
 | `...response.body`    | The text received, not pretty-printed.                               |
 | `errors[]`            | Errors outside any test, e.g. a failed `globalSetup`.                |
 
+### Formats
+
+| `--format`           | What it prints                                                     |
+| -------------------- | ------------------------------------------------------------------ |
+| `json`               | The default. One JSON object, see [Output](#output).               |
+| `markdown+vim-folds` | Markdown, with bodies and headers in Vim's `{{{`/`}}}` fold marks. |
+
+The `+` names an extra on top of the base format, as in pandoc's `markdown+smart`. The fold markers
+are Vim's (`:h fold-marker`), so they get a name of their own: another editor's could come later.
+
+In markdown, a JSON body is indented without being parsed, so a big id like `9007199254740993`
+keeps every digit and the keys keep their order.
+
 ### How it works
 
 The test runs with `--trace on`, and the requests are read from the trace, not from the test. The
@@ -226,8 +240,8 @@ sent through `request` are shown, so the calls the test made are not buried.
 ## Neovim
 
 [`playwright_traffic_runner.lua`](https://github.com/hernancerm/dotfiles) sends the test under the
-cursor to a split. It passes the cursor's line, and playwright-traffic finds the test. It turns the
-JSON into markdown with fold markers, so the header blocks come up folded.
+cursor to a split. It passes the cursor's line, and playwright-traffic finds the test. It asks for
+`--format=markdown+vim-folds`, so the header blocks come up folded.
 
 It runs `npx --no-install playwright-traffic` from the directory of the `playwright.config.ts`: npx
 finds the project's own playwright-traffic only from there, and `--no-install` stops it fetching one

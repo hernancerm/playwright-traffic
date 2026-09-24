@@ -1,5 +1,5 @@
 /**
- * Runs one Playwright test with tracing on, then prints every request it sent as JSON. The
+ * Runs one Playwright test with tracing on, then prints every request it sent. The
  * trace is where the exchange is read from because it holds what went over the wire, e.g. the
  * content-type Playwright adds for `data:`, which the test itself never sees.
  */
@@ -174,9 +174,12 @@ function isAt(report: Report, spec: Spec, file: string): boolean {
 /**
  * `location` is `file:line`, and the test run is the nearest one at or above that line, like
  * vim-test's nearest: any line inside a test names it. Without a line, every test in the file
- * runs.
+ * runs. `format` turns the requests into what is printed.
  */
-export async function showTest(location: string): Promise<number> {
+export async function showTest(
+  location: string,
+  format: (output: Output) => string,
+): Promise<number> {
   const match = /^(.*):(\d+)$/.exec(location);
   const file = resolve(match ? match[1] : location);
   const cursor = match ? Number(match[2]) : undefined;
@@ -250,7 +253,7 @@ export async function showTest(location: string): Promise<number> {
         }
       }
     }
-    console.log(JSON.stringify(out, null, 2));
+    console.log(format(out));
     const failed = out.errors.length > 0 || out.tests.some((test) => test.errors.length > 0);
     return failed ? 1 : 0;
   } finally {
