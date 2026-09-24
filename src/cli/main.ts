@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-/** The `wirepeek` command. */
+/** The `playwright-traffic` command. */
 
 import { showTest } from './playwright.ts';
 
-const USAGE = `wirepeek: show the requests a Playwright test sends.
+const USAGE = `playwright-traffic: show the requests a Playwright test sends.
 
-  wirepeek <file.ts>:<line>   run the nearest test at or above the line, print its requests as
-                              JSON
+  playwright-traffic <file.ts>:<line>   run the nearest test at or above the line, print its
+                                        requests as JSON
 
-  npx wirepeek ./todos.spec.ts:12 | jq
+  npx playwright-traffic ./todos.spec.ts:12 | jq
 `;
 
 async function main(args: string[]): Promise<number> {

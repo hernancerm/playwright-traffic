@@ -1,7 +1,7 @@
 /**
- * What `wirepeek` prints: one JSON object, meant to be turned into whatever a reader wants, e.g.
- * markdown in an editor split. Nothing here is formatted for display, so no consumer has to undo
- * it: bodies stay the text that was sent, headers keep their order and repeats.
+ * What `playwright-traffic` prints: one JSON object, meant to be turned into whatever a reader
+ * wants, e.g. markdown in an editor split. Nothing here is formatted for display, so no consumer
+ * has to undo it: bodies stay the text that was sent, headers keep their order and repeats.
  */
 
 import { reasonPhrase } from './status.ts';

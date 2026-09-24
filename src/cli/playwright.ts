@@ -137,7 +137,7 @@ interface Failed {
 
 /** Runs Playwright with the JSON reporter. A failing test exits non-zero and still reports. */
 async function playwright(root: string, args: string[]): Promise<Report | Failed> {
-  const dir = await mkdtemp(join(tmpdir(), 'wirepeek-'));
+  const dir = await mkdtemp(join(tmpdir(), 'playwright-traffic-'));
   const file = join(dir, 'report.json');
   try {
     const env = { ...process.env, FORCE_COLOR: '0', PLAYWRIGHT_JSON_OUTPUT_FILE: file };
@@ -182,7 +182,7 @@ export async function showTest(location: string): Promise<number> {
   const cursor = match ? Number(match[2]) : undefined;
   const root = await projectRoot(file);
   if (root === undefined) {
-    console.error(`wirepeek: no ${CONFIGS[0]} above ${file}`);
+    console.error(`playwright-traffic: no ${CONFIGS[0]} above ${file}`);
     return 2;
   }
 
@@ -201,12 +201,12 @@ export async function showTest(location: string): Promise<number> {
   // project that has it runs.
   const project = chosen.flatMap((spec) => spec.tests)[0]?.projectName;
   if (project === undefined) {
-    console.error(`wirepeek: no test at or above ${location}`);
+    console.error(`playwright-traffic: no test at or above ${location}`);
     return 2;
   }
   const target = line === undefined ? file : `${file}:${line}`;
 
-  const output = await mkdtemp(join(tmpdir(), 'wirepeek-'));
+  const output = await mkdtemp(join(tmpdir(), 'playwright-traffic-'));
   try {
     const report = await playwright(root, [
       target,

@@ -1,11 +1,11 @@
 {
-  "name": "wirepeek",
+  "name": "playwright-traffic",
   "version": "0.1.0",
   "description": "Run one Playwright test and print the requests it sent as JSON.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "wirepeek": "./dist/cli/main.js"
+    "playwright-traffic": "./dist/cli/main.js"
   },
   "files": [
     "dist"

@@ -1,4 +1,4 @@
-# wirepeek
+# playwright-traffic
 
 See what a Playwright test sent and got back, as JSON. Run one from your editor, check them all
 with Playwright.
@@ -11,9 +11,9 @@ API test tells me whether it passed, not what went over the wire.
 
 ## Solution
 
-Write the requests as Playwright tests. `wirepeek` runs the one at a line and prints each request
-it sent as JSON: status, url, both bodies, both sets of headers. Turn that into whatever you like to
-read, e.g. markdown in an editor split, or pipe it to `jq`.
+Write the requests as Playwright tests. `playwright-traffic` runs the one at a line and prints each
+request it sent as JSON: status, url, both bodies, both sets of headers. Turn that into whatever you
+like to read, e.g. markdown in an editor split, or pipe it to `jq`.
 
 ```ts
 // tests/todos.spec.ts
@@ -35,7 +35,7 @@ test('create-todo', async ({ request }) => {
 ```
 
 ```text
-npx wirepeek tests/todos.spec.ts:10
+npx playwright-traffic tests/todos.spec.ts:10
 npx playwright test
 ```
 
@@ -89,8 +89,8 @@ npx playwright test
 - Only the first project that has the test runs. See [Projects](#projects).
 - Only requests sent through `request` are shown, not a page's own. See
   [Browser tests](#browser-tests).
-- Node only. Playwright runs under Deno, but wirepeek starts it with `npx`, so the test runs
-  under Node.
+- Node only. Playwright runs under Deno, but playwright-traffic starts it with `npx`, so the test
+  runs under Node.
 - Nothing is published yet. See [Installation](#installation).
 
 ## Requirements
@@ -102,29 +102,29 @@ npx playwright test
 
 ## Installation
 
-wirepeek is not on npm yet, so install it from a clone:
+playwright-traffic is not on npm yet, so install it from a clone:
 
 1. Clone the repo and pack it:
 
 ```text
-git clone https://github.com/hernancerm/curler.git ~/dev/repos/wirepeek
-cd ~/dev/repos/wirepeek && npm install && npm pack
+git clone https://github.com/hernancerm/playwright-traffic.git ~/dev/repos/playwright-traffic
+cd ~/dev/repos/playwright-traffic && npm install && npm pack
 ```
 
 2. Install the tarball in your Playwright project:
 
 ```text
-npm i -D ~/dev/repos/wirepeek/wirepeek-0.1.0.tgz
+npm i -D ~/dev/repos/playwright-traffic/playwright-traffic-0.1.0.tgz
 ```
 
 3. Verify, with a line inside a test:
 
 ```text
-npx wirepeek tests/some.spec.ts:12
+npx playwright-traffic tests/some.spec.ts:12
 ```
 
 Install it in each project rather than globally: it runs the project's own Playwright, and the
-Neovim runner looks for the project's own wirepeek.
+Neovim runner looks for the project's own playwright-traffic.
 
 ## Quickstart
 
@@ -138,10 +138,10 @@ mkdir my-api && cd my-api
 npm init -y playwright@latest -- --quiet --no-browsers
 ```
 
-2. Install wirepeek, packed as in [Installation](#installation):
+2. Install playwright-traffic, packed as in [Installation](#installation):
 
 ```text
-npm i -D ~/dev/repos/wirepeek/wirepeek-0.1.0.tgz
+npm i -D ~/dev/repos/playwright-traffic/playwright-traffic-0.1.0.tgz
 ```
 
 3. Replace `playwright.config.ts`. The generated one is for browsers: its three projects would run
@@ -171,19 +171,20 @@ test('get-todo', async ({ request }) => {
 5. Run it:
 
 ```text
-npx wirepeek tests/todos.spec.ts:3
+npx playwright-traffic tests/todos.spec.ts:3
 npx playwright test
 ```
 
 ## Command
 
 ```text
-wirepeek <file>:<line>
+playwright-traffic <file>:<line>
 ```
 
 Runs the nearest test at or above the line and prints its requests. The test run is the nearest
-one that starts at or above the line, like vim-test's nearest, so any line inside a test names it. It is then run as Playwright's own `file:line`, so a title repeated in
-another `describe` is not a problem. Without `:<line>`, every test in the file runs.
+one that starts at or above the line, like vim-test's nearest, so any line inside a test names it.
+It is then run as Playwright's own `file:line`, so a title repeated in another `describe` is not a
+problem. Without `:<line>`, every test in the file runs.
 
 It exits 0 when the test passed, 1 when it failed, and 2 when there is no test at or above the
 line or no `playwright.config.ts` above the file. Only the JSON goes to stdout. When there is none,
@@ -224,13 +225,13 @@ sent through `request` are shown, so the calls the test made are not buried.
 
 ## Neovim
 
-[`wirepeek_runner.lua`](https://github.com/hernancerm/dotfiles) sends the test under the cursor to
-a split. It passes the cursor's line, and wirepeek finds the test. It turns the JSON into markdown
-with fold markers, so the header blocks come up folded.
+[`playwright_traffic_runner.lua`](https://github.com/hernancerm/dotfiles) sends the test under the
+cursor to a split. It passes the cursor's line, and playwright-traffic finds the test. It turns the
+JSON into markdown with fold markers, so the header blocks come up folded.
 
-It runs `npx --no-install wirepeek` from the directory of the `playwright.config.ts`: npx finds the
-project's own wirepeek only from there, and `--no-install` stops it fetching one from npm when the
-project has none.
+It runs `npx --no-install playwright-traffic` from the directory of the `playwright.config.ts`: npx
+finds the project's own playwright-traffic only from there, and `--no-install` stops it fetching one
+from npm when the project has none.
 
 ## Develop
 
@@ -242,15 +243,15 @@ npm run build
 ```
 
 The sources import `./x.ts`, so `node --test` runs them as they are. `npm run build` writes `dist/`,
-which the package ships, since Node does not strip types under `node_modules`. `npx wirepeek` in
-this repo runs `dist/`, so build after an edit.
+which the package ships, since Node does not strip types under `node_modules`.
+`npx playwright-traffic` in this repo runs `dist/`, so build after an edit.
 
 `examples/` is a Playwright suite against [JSONPlaceholder](https://jsonplaceholder.typicode.com),
 with one test that fails on purpose:
 
 ```text
 npx playwright test
-npx wirepeek examples/todos.spec.ts:10
+npx playwright-traffic examples/todos.spec.ts:10
 ```
 
 ## Contributing
