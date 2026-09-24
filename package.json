@@ -1,0 +1,38 @@
+{
+  "name": "@curler/playwright",
+  "version": "0.1.0",
+  "description": "Playwright's test and expect for HTTP, and a command that renders a test's requests as markdown.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/mod.d.ts",
+      "default": "./dist/mod.js"
+    }
+  },
+  "bin": {
+    "curler": "./dist/cli/main.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "fmt": "prettier --write .",
+    "test": "node --test 'src/**/*.test.ts'",
+    "prepare": "tsc"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.50"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.2",
+    "prettier": "^3.9.9",
+    "typescript": "^7.0.2"
+  }
+}

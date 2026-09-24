@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * The `curler` command.
  *
@@ -13,7 +14,7 @@ const USAGE = `curler: show the requests a Playwright test sends.
 
 Aliases: show.
 
-  curler show ./todos.spec.ts create-todo
+  npx curler show ./todos.spec.ts create-todo
 `;
 
 async function main(args: string[]): Promise<number> {
@@ -39,6 +40,4 @@ async function main(args: string[]): Promise<number> {
   return 2;
 }
 
-if (import.meta.main) {
-  Deno.exit(await main(Deno.args));
-}
+process.exitCode = await main(process.argv.slice(2));

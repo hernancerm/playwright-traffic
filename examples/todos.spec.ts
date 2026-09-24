@@ -1,4 +1,4 @@
-import { expect, test } from '../mod.ts';
+import { expect, test } from '../src/mod.ts';
 
 const base = 'https://jsonplaceholder.typicode.com';
 const id = 1;
@@ -8,7 +8,9 @@ test('get-todo-by-id', async ({ request }) => {
 });
 
 test('create-todo', async ({ request }) => {
-  const res = await request.post(`${base}/todos`, { data: { title: 'Buy milk', completed: false } });
+  const res = await request.post(`${base}/todos`, {
+    data: { title: 'Buy milk', completed: false },
+  });
   expect(res.status()).toBe(201);
   expect(await res.json()).toMatchObject({ title: 'Buy milk' });
 });

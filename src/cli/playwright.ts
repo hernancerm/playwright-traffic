@@ -4,8 +4,14 @@
  * content-type Playwright adds for `data:`, which the test itself never sees.
  */
 
-import { dirname, join, resolve } from '@std/path';
+import { execFile } from 'node:child_process';
+import { mkdtemp, readdir, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { promisify } from 'node:util';
 import { render } from './render.ts';
+
+const run = promisify(execFile);
 
 const CONFIGS = ['playwright.config.ts', 'playwright.config.js', 'playwright.config.mjs'];
 
@@ -15,7 +21,7 @@ async function projectRoot(file: string): Promise<string | undefined> {
   while (true) {
     for (const name of CONFIGS) {
       try {
-        await Deno.stat(join(dir, name));
+        await stat(join(dir, name));
         return dir;
       } catch {
         // Not here, keep climbing.
@@ -30,9 +36,9 @@ async function projectRoot(file: string): Promise<string | undefined> {
 }
 
 async function* traces(dir: string): AsyncGenerator<string> {
-  for await (const entry of Deno.readDir(dir)) {
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
-    if (entry.isDirectory) {
+    if (entry.isDirectory()) {
       yield* traces(path);
     } else if (entry.name === 'trace.zip') {
       yield path;
@@ -42,8 +48,8 @@ async function* traces(dir: string): AsyncGenerator<string> {
 
 /** A zip member as text. `unzip` ships with macOS and most Linux, which beats a zip dependency. */
 async function unzipText(zip: string, member: string): Promise<string> {
-  const { stdout } = await new Deno.Command('unzip', { args: ['-p', zip, member] }).output();
-  return new TextDecoder().decode(stdout);
+  const { stdout } = await run('unzip', ['-p', zip, member], { maxBuffer: Infinity });
+  return stdout;
 }
 
 type HarHeader = { name: string; value: string };
@@ -84,17 +90,19 @@ async function renderTrace(zip: string): Promise<string[]> {
     for (const { name, value } of response.headers) {
       (headers[name.toLowerCase()] ??= []).push(value);
     }
-    out.push(render({
-      status: response.status,
-      method: request.method,
-      url: request.url,
-      headers,
-      body: await bodyText(zip, response.content),
-      request: {
-        headers: request.headers.map(({ name, value }) => `${name}: ${value}`),
-        body: request.postData && await bodyText(zip, request.postData),
-      },
-    }));
+    out.push(
+      render({
+        status: response.status,
+        method: request.method,
+        url: request.url,
+        headers,
+        body: await bodyText(zip, response.content),
+        request: {
+          headers: request.headers.map(({ name, value }) => `${name}: ${value}`),
+          body: request.postData && (await bodyText(zip, request.postData)),
+        },
+      }),
+    );
   }
   return out;
 }
@@ -105,10 +113,12 @@ export async function showTest(file: string, title: string): Promise<number> {
     console.error(`curler: no ${CONFIGS[0]} above ${file}`);
     return 2;
   }
-  const output = await Deno.makeTempDir({ prefix: 'curler-' });
+  const output = await mkdtemp(join(tmpdir(), 'curler-'));
   try {
-    const { code, stdout, stderr } = await new Deno.Command('npx', {
-      args: [
+    // A failing test exits non-zero, which is an answer here, not an error.
+    const { code, stdout, stderr } = await run(
+      'npx',
+      [
         'playwright',
         'test',
         resolve(file),
@@ -124,19 +134,28 @@ export async function showTest(file: string, title: string): Promise<number> {
         '--reporter',
         'line',
       ],
-      cwd: root,
-      env: { FORCE_COLOR: '0' },
-    }).output();
-    const log = new TextDecoder().decode(stdout) + new TextDecoder().decode(stderr);
+      { cwd: root, env: { ...process.env, FORCE_COLOR: '0' }, maxBuffer: Infinity },
+    ).then(
+      (done) => ({ code: 0, ...done }),
+      (failed: { code?: number; stdout?: string; stderr?: string }) => ({
+        code: typeof failed.code === 'number' ? failed.code : 1,
+        stdout: failed.stdout ?? '',
+        stderr: failed.stderr ?? String(failed),
+      }),
+    );
+    const log = stdout + stderr;
 
     const sections: string[] = [];
     for await (const zip of traces(output)) {
-      sections.push(...await renderTrace(zip));
+      sections.push(...(await renderTrace(zip)));
     }
     if (code !== 0) {
       // The first error line says why, e.g. a failed expect on a 200. The whole log is folded
       // below for the diff and the source excerpt.
-      const why = log.split('\n').find((line) => line.trim().startsWith('Error:'))?.trim();
+      const why = log
+        .split('\n')
+        .find((line) => line.trim().startsWith('Error:'))
+        ?.trim();
       sections.unshift(`# ✗ ${why ?? 'test failed'}\n\nPlaywright{{{\n${log.trimEnd()}\n}}}\n`);
     }
     if (sections.length === 0) {
@@ -146,6 +165,6 @@ export async function showTest(file: string, title: string): Promise<number> {
     console.log(sections.join('\n').trimEnd());
     return code;
   } finally {
-    await Deno.remove(output, { recursive: true }).catch(() => {});
+    await rm(output, { recursive: true, force: true });
   }
 }

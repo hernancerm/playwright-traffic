@@ -1,9 +1,10 @@
-import { assertEquals } from '@std/assert';
-import { render } from '../render.ts';
+import { deepStrictEqual as assertEquals } from 'node:assert';
+import { test } from 'node:test';
+import { render } from './render.ts';
 
 const get = { method: 'GET', url: 'https://x.test/1' };
 
-Deno.test('renders a json response', () => {
+test('renders a json response', () => {
   const out = render({
     ...get,
     status: 200,
@@ -31,19 +32,19 @@ Deno.test('renders a json response', () => {
   );
 });
 
-Deno.test('repeated headers each get a line', () => {
+test('repeated headers each get a line', () => {
   const out = render({ ...get, status: 204, headers: { 'set-cookie': ['a=1', 'b=2'] }, body: '' });
   assertEquals(out.includes('set-cookie: a=1\nset-cookie: b=2'), true);
   assertEquals(out.includes('(empty body)'), true);
 });
 
-Deno.test('non-json body uses a plain fence', () => {
+test('non-json body uses a plain fence', () => {
   const out = render({ ...get, status: 404, headers: {}, body: 'not found' });
   assertEquals(out.startsWith('# ✗ 404 Not Found'), true);
   assertEquals(out.includes('```\nnot found\n```'), true);
 });
 
-Deno.test('no response says so', () => {
+test('no response says so', () => {
   assertEquals(
     render({ ...get, status: 0, headers: {}, body: '' }).startsWith('# ✗ (no response)'),
     true,
@@ -54,7 +55,7 @@ Deno.test('no response says so', () => {
   );
 });
 
-Deno.test('request folds appear only when there is something to show', () => {
+test('request folds appear only when there is something to show', () => {
   const plain = render({ ...get, status: 200, headers: {}, body: '', request: { headers: [] } });
   assertEquals(plain.includes('Request headers'), false);
   assertEquals(plain.includes('Request body'), false);
@@ -71,7 +72,7 @@ Deno.test('request folds appear only when there is something to show', () => {
   assertEquals(post.includes('Request body{{{\n```json\n{\n  "a": 1\n}'), true);
 });
 
-Deno.test('body comes before headers on both sides', () => {
+test('body comes before headers on both sides', () => {
   const out = render({
     status: 201,
     method: 'POST',

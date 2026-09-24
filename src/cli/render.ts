@@ -46,7 +46,7 @@ function renderRequestBody(request: Request | undefined): string | undefined {
 
 function renderHeaders(headers: Headers): string {
   const lines = Object.entries(headers).flatMap(([name, values]) =>
-    values.map((value) => `${name}: ${value}`)
+    values.map((value) => `${name}: ${value}`),
   );
   if (lines.length === 0) {
     return '(no headers)';
