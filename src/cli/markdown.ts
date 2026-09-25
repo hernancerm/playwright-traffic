@@ -79,6 +79,17 @@ function path(url: string): string {
   }
 }
 
+/** One `name=value` per line, decoded, e.g. `q=buy%20milk` as `q=buy milk`. '' without a query. */
+function query(url: string): string {
+  let params;
+  try {
+    params = new URL(url).searchParams;
+  } catch {
+    return '';
+  }
+  return [...params].map(([name, value]) => `${name}=${value}`).join('\n');
+}
+
 /** In 1024s, as Postman counts them. */
 function size(text: string): string {
   const bytes = Buffer.byteLength(text);
@@ -103,6 +114,10 @@ function exchange({ request, response, time }: Exchange): string {
   // the detail you open when the body does not explain itself. A GET usually has no request
   // body, and an absent fold reads better than an empty one.
   const sections = [heading, `${request.method} ${request.url}`];
+  const params = query(request.url);
+  if (params !== '') {
+    sections.push(fold('Request query', params));
+  }
   if (request.body !== null) {
     sections.push(fold('Request body', body(request.body)));
   }
