@@ -2,7 +2,22 @@
   "name": "playwright-traffic",
   "version": "0.1.0",
   "description": "Run one Playwright test and print the requests it sent as JSON.",
+  "keywords": [
+    "playwright",
+    "api",
+    "testing",
+    "http",
+    "requests",
+    "trace",
+    "neovim"
+  ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hernancerm/playwright-traffic.git"
+  },
+  "homepage": "https://github.com/hernancerm/playwright-traffic#readme",
+  "bugs": "https://github.com/hernancerm/playwright-traffic/issues",
   "type": "module",
   "bin": {
     "playwright-traffic": "./dist/cli/main.js"
@@ -14,7 +29,7 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/cli/main.js",
+    "build": "rm -rf dist && tsc && chmod +x dist/cli/main.js",
     "check": "tsc --noEmit",
     "fmt": "prettier --write .",
     "test": "node --test 'src/**/*.test.ts'",
