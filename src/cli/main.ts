@@ -19,7 +19,7 @@ const USAGE = `playwright-traffic: show the requests a Playwright test sends.
   --format=json                 (default) one JSON object, e.g. to pipe to jq
   --format=markdown+vim-folds   markdown, details in Vim fold markers (:h fold-marker)
 
-  npx playwright-traffic ./todos.spec.ts:12 | jq
+  playwright-traffic ./todos.spec.ts:12 | jq
 `;
 
 async function main(args: string[]): Promise<number> {

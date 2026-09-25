@@ -35,7 +35,7 @@ test('create-todo', async ({ request }) => {
 ```
 
 ```text
-npx playwright-traffic tests/todos.spec.ts:10
+playwright-traffic tests/todos.spec.ts:10
 npx playwright test
 ```
 
@@ -103,61 +103,52 @@ npx playwright test
 
 ## Installation
 
-playwright-traffic is not on npm yet, so install it from a clone:
+playwright-traffic is not on npm yet, so run it from a clone:
 
-1. Clone the repo and pack it:
+1. Clone the repo:
 
 ```text
 git clone https://github.com/hernancerm/playwright-traffic.git ~/dev/repos/playwright-traffic
-cd ~/dev/repos/playwright-traffic && npm install && npm pack
 ```
 
-2. Install the tarball in your Playwright project:
+2. Add an alias to your shell's config, e.g. `~/.zshrc`:
+
+```sh
+alias playwright-traffic='node ~/dev/repos/playwright-traffic/src/cli/main.ts'
+```
+
+3. Verify, in a Playwright project, with a line inside a test:
 
 ```text
-npm i -D ~/dev/repos/playwright-traffic/playwright-traffic-0.1.0.tgz
+playwright-traffic tests/some.spec.ts:12
 ```
 
-3. Verify, with a line inside a test:
-
-```text
-npx playwright-traffic tests/some.spec.ts:12
-```
-
-Install it in each project rather than globally: it runs the project's own Playwright, and the
-Neovim runner looks for the project's own playwright-traffic.
+There is nothing to install or build: Node runs the `.ts` sources as they are, and
+playwright-traffic has no dependencies. It runs the project's own Playwright with `npx playwright`.
 
 ## Quickstart
 
-A new project for API tests, from an empty directory:
+A new project for API tests, from an empty directory, with playwright-traffic set up as in
+[Installation](#installation):
 
-1. Create a Playwright project. `--quiet` takes the defaults (TypeScript, `tests/`), and
-   `--no-browsers` skips the download, since `request` needs no browser:
-
-```text
-mkdir my-api && cd my-api
-npm init -y playwright@latest -- --quiet --no-browsers
-```
-
-2. Install playwright-traffic, packed as in [Installation](#installation):
+1. Install Playwright. No browser is downloaded, and `request` needs none:
 
 ```text
-npm i -D ~/dev/repos/playwright-traffic/playwright-traffic-0.1.0.tgz
+mkdir -p my-api/tests && cd my-api
+npm i -D @playwright/test
 ```
 
-3. Replace `playwright.config.ts`. The generated one is for browsers: its three projects would run
-   every API test three times, and its `html` reporter opens a browser on a failure.
+2. Add `playwright.config.ts`:
 
 ```ts
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  reporter: 'list',
 });
 ```
 
-4. Replace `tests/example.spec.ts`, a browser test, with a request:
+3. Add a test:
 
 ```ts
 // tests/todos.spec.ts
@@ -169,10 +160,10 @@ test('get-todo', async ({ request }) => {
 });
 ```
 
-5. Run it:
+4. Run it:
 
 ```text
-npx playwright-traffic tests/todos.spec.ts:3
+playwright-traffic tests/todos.spec.ts:3
 npx playwright test
 ```
 
@@ -249,13 +240,12 @@ sent through `request` are shown, so the calls the test made are not buried.
 cursor to a split. It passes the cursor's line, and playwright-traffic finds the test. It asks for
 `--format=markdown+vim-folds`, so the header blocks come up folded.
 
-It runs `npx --no-install playwright-traffic` from the directory of the `playwright.config.ts`: npx
-finds the project's own playwright-traffic only from there, and `--no-install` stops it fetching one
-from npm when the project has none.
+It runs `node ~/dev/repos/playwright-traffic/src/cli/main.ts`, so the clone must be at that path.
 
 ## Develop
 
 ```text
+npm install
 npm run check
 npm test
 npm run fmt
@@ -264,14 +254,13 @@ npm run build
 
 The sources import `./x.ts`, so `node --test` runs them as they are. `npm run build` writes `dist/`,
 which the package ships, since Node does not strip types under `node_modules`.
-`npx playwright-traffic` in this repo runs `dist/`, so build after an edit.
 
 `examples/` is a Playwright suite against [JSONPlaceholder](https://jsonplaceholder.typicode.com),
 with one test that fails on purpose:
 
 ```text
 npx playwright test
-npx playwright-traffic examples/todos.spec.ts:10
+playwright-traffic examples/todos.spec.ts:10
 ```
 
 ## Contributing
