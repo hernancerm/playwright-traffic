@@ -92,7 +92,7 @@ function size(text: string): string {
 }
 
 function exchange({ request, response, time }: Exchange): string {
-  let heading = `# ${request.method} ${path(request.url)} → `;
+  let heading = `# ${request.method} ${path(request.url)} · `;
   if (response === null) {
     heading += `(no response) · ${Math.round(time)} ms`;
   } else {

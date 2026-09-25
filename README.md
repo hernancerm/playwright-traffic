@@ -220,7 +220,7 @@ are Vim's (`:h fold-marker`), so they get a name of their own: another editor's 
 In markdown, a JSON body is indented without being parsed, so a big id like `9007199254740993`
 keeps every digit and the keys keep their order.
 
-Each request's heading reads like `# POST /todos → 201 Created · 142 ms · 83 B`, so the outline
+Each request's heading reads like `# POST /todos · 201 Created · 142 ms · 83 B`, so the outline
 tells requests apart. The size is the response body's. The last line is a Vim modeline, so the
 output folds when saved to a file and opened again.
 
