@@ -20,6 +20,7 @@ test('keeps bodies as sent and headers in order', () => {
       ],
       body: '{"id":1}',
     },
+    time: 142.5,
   });
   assertEquals(out, {
     request: {
@@ -37,25 +38,26 @@ test('keeps bodies as sent and headers in order', () => {
       ],
       body: '{"id":1}',
     },
+    time: 142.5,
   });
 });
 
 test('a request with no body has a null body', () => {
   const response = { status: 200, headers: [], body: '' };
-  assertEquals(exchange({ request: get, response }).request.body, null);
-  assertEquals(exchange({ request: { ...get, body: '' }, response }).request.body, null);
+  assertEquals(exchange({ request: get, response, time: 0 }).request.body, null);
+  assertEquals(exchange({ request: { ...get, body: '' }, response, time: 0 }).request.body, null);
 });
 
 test('no response is null', () => {
   for (const status of [0, -1]) {
     assertEquals(
-      exchange({ request: get, response: { status, headers: [], body: '' } }).response,
+      exchange({ request: get, response: { status, headers: [], body: '' }, time: 0 }).response,
       null,
     );
   }
 });
 
 test('an unknown status has a null reason', () => {
-  const out = exchange({ request: get, response: { status: 299, headers: [], body: '' } });
+  const out = exchange({ request: get, response: { status: 299, headers: [], body: '' }, time: 0 });
   assertEquals(out.response?.reason, null);
 });

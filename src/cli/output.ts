@@ -25,6 +25,8 @@ export interface Exchange {
     headers: Header[];
     body: string;
   } | null;
+  /** Milliseconds from sending the request to the last byte of the response, as HAR's `time`. */
+  time: number;
 }
 
 export interface Test {
@@ -53,13 +55,14 @@ type HarHeader = { name: string; value: string };
 export interface HarExchange {
   request: { method: string; url: string; headers: HarHeader[]; body?: string };
   response: { status: number; headers: HarHeader[]; body: string };
+  time: number;
 }
 
 function pairs(headers: HarHeader[]): Header[] {
   return headers.map(({ name, value }) => [name, value]);
 }
 
-export function exchange({ request, response }: HarExchange): Exchange {
+export function exchange({ request, response, time }: HarExchange): Exchange {
   return {
     request: {
       method: request.method,
@@ -77,5 +80,6 @@ export function exchange({ request, response }: HarExchange): Exchange {
             headers: pairs(response.headers),
             body: response.body,
           },
+    time,
   };
 }

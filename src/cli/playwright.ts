@@ -55,6 +55,7 @@ interface HarEntry {
     headers: HarHeader[];
     content: { text?: string; _file?: string };
   };
+  time: number;
   /** Set on requests sent through `request`, absent on a page's own. Newer Playwright. */
   _apiRequestRef?: string;
   /** The same mark before it was renamed, e.g. in 1.50. */
@@ -82,7 +83,7 @@ async function readTrace(zip: string): Promise<Exchange[]> {
     if (entry._apiRequestRef === undefined && !entry._apiRequest) {
       continue;
     }
-    const { request, response } = entry;
+    const { request, response, time } = entry;
     out.push(
       exchange({
         request: {
@@ -90,6 +91,7 @@ async function readTrace(zip: string): Promise<Exchange[]> {
           body: request.postData && (await bodyText(zip, request.postData)),
         },
         response: { ...response, body: await bodyText(zip, response.content) },
+        time,
       }),
     );
   }

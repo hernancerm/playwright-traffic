@@ -204,6 +204,7 @@ e.g. Playwright could not start, the reason goes to stderr.
 | `...response`         | `null` when no response came back.                                   |
 | `...response.reason`  | E.g. `Created`, from a table since HTTP/2 sends none.                |
 | `...response.body`    | The text received, not pretty-printed.                               |
+| `...time`             | Milliseconds from sending the request to the end of the response.    |
 | `errors[]`            | Errors outside any test, e.g. a failed `globalSetup`.                |
 
 ### Formats
@@ -218,6 +219,10 @@ are Vim's (`:h fold-marker`), so they get a name of their own: another editor's 
 
 In markdown, a JSON body is indented without being parsed, so a big id like `9007199254740993`
 keeps every digit and the keys keep their order.
+
+Each request's heading reads like `# POST /todos → 201 Created · 142 ms · 83 B`, so the outline
+tells requests apart. The size is the response body's. The last line is a Vim modeline, so the
+output folds when saved to a file and opened again.
 
 ### How it works
 

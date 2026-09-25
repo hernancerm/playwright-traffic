@@ -70,10 +70,34 @@ function fold(label: string, contents: string): string {
   return `${label}{{{\n${contents}\n}}}`;
 }
 
-function exchange({ request, response }: Exchange): string {
-  let heading = '# (no response)';
-  if (response !== null) {
-    heading = `# ${response.status}` + (response.reason === null ? '' : ` ${response.reason}`);
+/** The path alone, so the outline of many requests to one host tells them apart. */
+function path(url: string): string {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url;
+  }
+}
+
+/** In 1024s, as Postman counts them. */
+function size(text: string): string {
+  const bytes = Buffer.byteLength(text);
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function exchange({ request, response, time }: Exchange): string {
+  let heading = `# ${request.method} ${path(request.url)} → `;
+  if (response === null) {
+    heading += `(no response) · ${Math.round(time)} ms`;
+  } else {
+    heading += `${response.status}` + (response.reason === null ? '' : ` ${response.reason}`);
+    heading += ` · ${Math.round(time)} ms · ${size(response.body)}`;
   }
   // Body before headers on both sides: the body is what the request is about, the headers are
   // the detail you open when the body does not explain itself. A GET usually has no request
@@ -111,5 +135,7 @@ export function markdown(output: Output): string {
     }
     sections.push(...test.exchanges.map(exchange));
   }
+  // Folds the output when saved to a file and opened again (`:h modeline`).
+  sections.push('<!-- vim: set fdm=marker: -->');
   return sections.join('\n').trim();
 }
