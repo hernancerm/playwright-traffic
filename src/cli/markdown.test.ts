@@ -35,7 +35,7 @@ test('folds the details of an exchange', () => {
               method: 'POST',
               url: 'https://x.test/todos',
               headers: [['content-type', 'application/json']],
-              body: '{"a":1}',
+              body: '{"a":"it\'s"}',
             },
             response: { status: 201, reason: 'Created', headers: [], body: 'ok' },
             time: 142.4,
@@ -70,7 +70,7 @@ test('folds the details of an exchange', () => {
       'Request body{{{',
       '```json',
       '{',
-      '  "a": 1',
+      '  "a": "it\'s"',
       '}',
       '```',
       '}}}',
@@ -78,6 +78,16 @@ test('folds the details of an exchange', () => {
       'Request headers{{{',
       '```http',
       'content-type: application/json',
+      '```',
+      '}}}',
+      '',
+      'curl{{{',
+      '```sh',
+      'curl --compressed \\',
+      '  --request POST \\',
+      "  --url 'https://x.test/todos' \\",
+      "  --header 'content-type: application/json' \\",
+      `  --data-raw '{"a":"it'\\''s"}'`,
       '```',
       '}}}',
       '',
@@ -99,7 +109,56 @@ test('folds the details of an exchange', () => {
       'tag=b',
       '}}}',
       '',
+      'curl{{{',
+      '```sh',
+      'curl --compressed \\',
+      '  --request GET \\',
+      "  --url 'https://x.test/1?q=buy%20milk&tag=a&tag=b'",
+      '```',
+      '}}}',
+      '',
       '<!-- vim: set fdm=marker: -->',
+    ].join('\n'),
+  );
+});
+
+test('curl sends a HEAD and an empty header as sent', () => {
+  const out = markdown({
+    errors: [],
+    tests: [
+      {
+        title: 'head',
+        file: '/x.spec.ts',
+        line: 1,
+        project: '',
+        status: 'passed',
+        errors: [],
+        exchanges: [
+          {
+            request: {
+              method: 'HEAD',
+              url: 'https://x.test/1',
+              headers: [['x-empty', '']],
+              body: null,
+            },
+            response: null,
+            time: 1,
+          },
+        ],
+      },
+    ],
+  });
+  assertEquals(
+    out.slice(out.indexOf('curl{{{'), out.lastIndexOf('}}}') + 3),
+    [
+      'curl{{{',
+      '```sh',
+      'curl --compressed \\',
+      '  --head \\',
+      "  --url 'https://x.test/1' \\",
+      "  --header 'x-empty;'",
+      '```',
+      '}}}',
     ].join('\n'),
   );
 });

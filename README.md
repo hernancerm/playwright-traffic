@@ -213,7 +213,8 @@ keeps every digit and the keys keep their order.
 
 Each request's heading reads like `# POST /todos · 201 Created · 142 ms · 83 B`, so the outline
 tells requests apart. The size is the response body's. A query string is also folded, one decoded
-`name=value` per line, e.g. `q=buy%20milk` as `q=buy milk`. The last line is a Vim modeline, so the
+`name=value` per line, e.g. `q=buy%20milk` as `q=buy milk`. A `curl` fold holds a command that
+sends the same request again, every header as sent. The last line is a Vim modeline, so the
 output folds when saved to a file and opened again.
 
 ### How it works

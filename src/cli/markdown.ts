@@ -90,6 +90,30 @@ function query(url: string): string {
   return [...params].map(([name, value]) => `${name}=${value}`).join('\n');
 }
 
+/** Single quotes keep `$` and `!` from the shell. A `'` inside closes, escapes and reopens. */
+function shellQuote(text: string): string {
+  return `'${text.replaceAll("'", `'\\''`)}'`;
+}
+
+/**
+ * Sends the same request again: every header as sent, in order. `--compressed` only decodes the
+ * response, the `accept-encoding` sent is still ours. `--data-raw`, since `--data` reads a file
+ * for a body like `@x`. `--head`, since `--request HEAD` waits for a body that never comes.
+ */
+function curl({ method, url, headers, body }: Exchange['request']): string {
+  const lines = ['curl --compressed', method === 'HEAD' ? '--head' : `--request ${method}`];
+  lines.push(`--url ${shellQuote(url)}`);
+  for (const [name, value] of headers) {
+    // curl drops `x: ` instead of sending it empty (`man curl`, --header).
+    const header = value === '' ? `${name};` : `${name}: ${value}`;
+    lines.push(`--header ${shellQuote(header)}`);
+  }
+  if (body !== null) {
+    lines.push(`--data-raw ${shellQuote(body)}`);
+  }
+  return '```sh\n' + lines.join(' \\\n  ') + '\n```';
+}
+
 /** In 1024s, as Postman counts them. */
 function size(text: string): string {
   const bytes = Buffer.byteLength(text);
@@ -124,6 +148,7 @@ function exchange({ request, response, time }: Exchange): string {
   if (request.headers.length > 0) {
     sections.push(fold('Request headers', headers(request.headers)));
   }
+  sections.push(fold('curl', curl(request)));
   if (response !== null) {
     sections.push(body(response.body));
     sections.push(fold('Response headers', headers(response.headers)));
