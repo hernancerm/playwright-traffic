@@ -70,26 +70,6 @@ function fold(label: string, contents: string): string {
   return `${label}{{{\n${contents}\n}}}`;
 }
 
-/** The path alone, so the outline of many requests to one host tells them apart. */
-function path(url: string): string {
-  try {
-    return new URL(url).pathname;
-  } catch {
-    return url;
-  }
-}
-
-/** One `name=value` per line, decoded, e.g. `q=buy%20milk` as `q=buy milk`. '' without a query. */
-function query(url: string): string {
-  let params;
-  try {
-    params = new URL(url).searchParams;
-  } catch {
-    return '';
-  }
-  return [...params].map(([name, value]) => `${name}=${value}`).join('\n');
-}
-
 /** Single quotes keep `$` and `!` from the shell. A `'` inside closes, escapes and reopens. */
 function shellQuote(text: string): string {
   return `'${text.replaceAll("'", `'\\''`)}'`;
@@ -127,7 +107,9 @@ function size(text: string): string {
 }
 
 function exchange({ request, response, time }: Exchange): string {
-  let heading = `# ${request.method} ${path(request.url)} · `;
+  const url = URL.parse(request.url);
+  // The path alone, so the outline of many requests to one host tells them apart.
+  let heading = `# ${request.method} ${url?.pathname ?? request.url} · `;
   if (response === null) {
     heading += `(no response) · ${Math.round(time)} ms`;
   } else {
@@ -138,9 +120,10 @@ function exchange({ request, response, time }: Exchange): string {
   // the detail you open when the body does not explain itself. A GET usually has no request
   // body, and an absent fold reads better than an empty one.
   const sections = [heading, `${request.method} ${request.url}`];
-  const params = query(request.url);
-  if (params !== '') {
-    sections.push(fold('Request query', params));
+  // One `name=value` per line, decoded, e.g. `q=buy%20milk` as `q=buy milk`.
+  const params = [...(url?.searchParams ?? [])].map(([name, value]) => `${name}=${value}`);
+  if (params.length > 0) {
+    sections.push(fold('Request query', params.join('\n')));
   }
   if (request.body !== null) {
     sections.push(fold('Request body', body(request.body)));
