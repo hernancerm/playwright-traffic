@@ -49,7 +49,7 @@ export interface Output {
   errors: string[];
 }
 
-type HarHeader = { name: string; value: string };
+export type HarHeader ={ name: string; value: string };
 
 /** The parts of a HAR entry read here, with bodies already read out of the trace. */
 export interface HarExchange {

@@ -9,7 +9,7 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { promisify, stripVTControlCharacters } from 'node:util';
-import { exchange, type Exchange, type Output } from './output.ts';
+import { exchange, type Exchange, type HarHeader, type Output } from './output.ts';
 
 const run = promisify(execFile);
 
@@ -40,8 +40,6 @@ async function unzipText(zip: string, member: string): Promise<string> {
   const { stdout } = await run('unzip', ['-p', zip, member], { maxBuffer: Infinity });
   return stdout;
 }
-
-type HarHeader = { name: string; value: string };
 
 interface HarEntry {
   request: {
