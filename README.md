@@ -1,19 +1,15 @@
 # playwright-traffic
 
-See what a Playwright test sent and got back, as JSON. Run one from your editor, check them all
-with Playwright.
+Runs the Playwright test nearest to `file:line` and prints what it sent and got back, as JSON.
 
-## Problem
+## Usage
 
-Postman keeps my requests outside the repo, and its test report is a stand-in for a real test
-runner. Playwright has the runner, the report and the syntax people already know, but running one
-API test tells me whether it passed, not what went over the wire.
+```text
+playwright-traffic [--format=<format>] <file>:<line>
+```
 
-## Solution
-
-Write the requests as Playwright tests. `playwright-traffic` runs the one at a line and prints each
-request it sent as JSON: status, url, both bodies, both sets of headers. Pipe it to `jq`, turn it
-into whatever you like to read, or ask for markdown with `--format=markdown+vim-folds`.
+The test run is the nearest one that starts at or above the line, so any line inside a test works.
+Without `:<line>`, every test in the file runs.
 
 ```ts
 // tests/todos.spec.ts
@@ -21,22 +17,16 @@ import { expect, test } from '@playwright/test';
 
 const base = 'https://jsonplaceholder.typicode.com';
 
-test('get-todo-by-id', async ({ request }) => {
-  await request.get(`${base}/todos/1`);
-});
-
 test('create-todo', async ({ request }) => {
   const res = await request.post(`${base}/todos`, {
     data: { title: 'Buy milk', completed: false },
   });
   expect(res.status()).toBe(201);
-  expect(await res.json()).toMatchObject({ title: 'Buy milk' });
 });
 ```
 
 ```text
-playwright-traffic tests/todos.spec.ts:10
-npx playwright test
+playwright-traffic tests/todos.spec.ts:7
 ```
 
 ```json
@@ -45,7 +35,7 @@ npx playwright test
     {
       "title": "create-todo",
       "file": "/home/me/my-api/tests/todos.spec.ts",
-      "line": 10,
+      "line": 5,
       "project": "",
       "status": "passed",
       "errors": [],
@@ -74,113 +64,14 @@ npx playwright test
 }
 ```
 
-## Features
+### Exit codes
 
-- Print the requests of the test at `file:line`, any line inside it, as the JSON shown above.
-- Show the headers as sent, including the ones Playwright adds itself, e.g. `content-type` for
-  `data:`.
-- Keep bodies as they were sent, and headers in their order, repeats included.
-- Work on an existing Playwright project with no change to its tests.
-- Print markdown instead, with the details in Vim fold markers. See [Formats](#formats).
-- Show the test under the cursor in a Neovim split, as markdown. See [Neovim](#neovim).
+- `0`: the test passed.
+- `1`: the test failed.
+- `2`: no test at or above the line, or no `playwright.config.ts` above the file.
 
-## Limitations
-
-- The test file must be saved, since Playwright reads it from disk. The Neovim runner saves it.
-- Only the first project that has the test runs. See [Projects](#projects).
-- Only requests sent through `request` are shown, not a page's own. See
-  [Browser tests](#browser-tests).
-- Node only. Playwright runs under Deno, but playwright-traffic starts it with `npx`, so the test
-  runs under Node.
-- Nothing is published yet. See [Installation](#installation).
-
-## Requirements
-
-- Node >= 22.18
-- `@playwright/test` >= 1.50, in the project. Verified against 1.50.0 and 1.63.0.
-- `unzip` on `PATH`, to read the trace. macOS and most Linux ship it.
-- Neovim >= 0.11 (optional, for the test-under-cursor keymap)
-
-## Installation
-
-playwright-traffic is not on npm yet, so run it from a clone:
-
-1. Clone the repo:
-
-```text
-git clone https://github.com/hernancerm/playwright-traffic.git ~/dev/repos/playwright-traffic
-```
-
-2. Add an alias to your shell's config, e.g. `~/.zshrc`:
-
-```sh
-alias playwright-traffic='node ~/dev/repos/playwright-traffic/src/cli/main.ts'
-```
-
-3. Verify, in a Playwright project, with a line inside a test:
-
-```text
-playwright-traffic tests/some.spec.ts:12
-```
-
-There is nothing to install or build: Node runs the `.ts` sources as they are, and
-playwright-traffic has no dependencies. It runs the project's own Playwright with `npx playwright`.
-
-## Quickstart
-
-A new project for API tests, from an empty directory, with playwright-traffic set up as in
-[Installation](#installation):
-
-1. Install Playwright. No browser is downloaded, and `request` needs none:
-
-```text
-mkdir -p my-api/tests && cd my-api
-npm i -D @playwright/test
-```
-
-2. Add `playwright.config.ts`:
-
-```ts
-import { defineConfig } from '@playwright/test';
-
-export default defineConfig({
-  testDir: './tests',
-});
-```
-
-3. Add a test:
-
-```ts
-// tests/todos.spec.ts
-import { expect, test } from '@playwright/test';
-
-test('get-todo', async ({ request }) => {
-  const res = await request.get('https://jsonplaceholder.typicode.com/todos/1');
-  expect(res.status()).toBe(200);
-});
-```
-
-4. Run it:
-
-```text
-playwright-traffic tests/todos.spec.ts:3
-npx playwright test
-```
-
-## Command
-
-```text
-playwright-traffic [--format=<format>] <file>:<line>
-```
-
-Runs the nearest test at or above the line and prints its requests. The test run is the nearest
-one that starts at or above the line, like vim-test's nearest, so any line inside a test names it.
-It is then run as Playwright's own `file:line`, so a title repeated in another `describe` is not a
-problem. Without `:<line>`, every test in the file runs.
-
-It exits 0 when the test passed, 1 when it failed, and 2 when there is no test at or above the
-line or no `playwright.config.ts` above the file. Only the JSON goes to stdout. When there is none,
-e.g. Playwright could not start, the reason goes to stderr.
+Only the JSON goes to stdout. When there is none, e.g. Playwright could not start, the reason goes
+to stderr.
 
 ### Output
 
@@ -205,43 +96,38 @@ e.g. Playwright could not start, the reason goes to stderr.
 | `json`               | The default. One JSON object, see [Output](#output).               |
 | `markdown+vim-folds` | Markdown, with bodies and headers in Vim's `{{{`/`}}}` fold marks. |
 
-The `+` names an extra on top of the base format, as in pandoc's `markdown+smart`. The fold markers
-are Vim's (`:h fold-marker`), so they get a name of their own: another editor's could come later.
+In markdown, each request gets a heading like `# POST /todos · 201 Created · 142 ms · 83 B`. The
+query string, bodies, headers and a `curl` command that sends the same request are folded under it.
+JSON bodies are indented without being parsed, so big numbers and key order are kept.
 
-In markdown, a JSON body is indented without being parsed, so a big id like `9007199254740993`
-keeps every digit and the keys keep their order.
+### Notes
 
-Each request's heading reads like `# POST /todos · 201 Created · 142 ms · 83 B`, so the outline
-tells requests apart. The size is the response body's. A query string is also folded, one decoded
-`name=value` per line, e.g. `q=buy%20milk` as `q=buy milk`. A `curl` fold holds a command that
-sends the same request again, every header as sent. The last line is a Vim modeline, so the
-output folds when saved to a file and opened again.
+- Requests are read from the Playwright trace, so headers Playwright adds itself show up.
+- Only requests sent through `request` are shown, not the ones a page loads.
+- Only the first project that has the test runs, so a `POST` is not sent once per project. Its
+  setup dependencies still run, but their requests are left out.
+- The test file must be saved, since Playwright reads it from disk.
+- Node only: the test runs with `npx playwright`.
 
-### How it works
+## Requirements
 
-The test runs with `--trace on`, and the requests are read from the trace, not from the test. The
-trace records what went over the wire, which is why the headers Playwright adds show up. The run
-uses the JSON reporter, which says which trace belongs to which test.
+- Node >= 22.18
+- `@playwright/test` >= 1.50, in the project. Verified against 1.50.0 and 1.63.0.
+- `unzip` on `PATH`, to read the trace.
 
-### Projects
+## Installation
 
-A config with several projects, e.g. one per browser, would run the test once per project, and a
-`POST` would go out that many times. So a `--list` run, which sends nothing, finds the first
-project that has the test, and only that one runs. Its setup dependencies, e.g. a login, still run,
-but their requests are left out.
+Not on npm yet. Clone the repo and add an alias:
 
-### Browser tests
+```text
+git clone https://github.com/hernancerm/playwright-traffic.git ~/dev/repos/playwright-traffic
+```
 
-A test that opens a page records every script, image and font the page loads. Only the requests
-sent through `request` are shown, so the calls the test made are not buried.
+```sh
+alias playwright-traffic='node ~/dev/repos/playwright-traffic/src/cli/main.ts'
+```
 
-## Neovim
-
-[`playwright_traffic_runner.lua`](https://github.com/hernancerm/dotfiles) sends the test under the
-cursor to a split. It passes the cursor's line, and playwright-traffic finds the test. It asks for
-`--format=markdown+vim-folds`, so the header blocks come up folded.
-
-It runs `node ~/dev/repos/playwright-traffic/src/cli/main.ts`, so the clone must be at that path.
+Nothing to build. Node runs the `.ts` sources as they are, and there are no dependencies.
 
 ## Develop
 
@@ -253,14 +139,10 @@ npm run fmt
 npm run build
 ```
 
-The sources import `./x.ts`, so `node --test` runs them as they are. `npm run build` writes `dist/`,
-which the package ships, since Node does not strip types under `node_modules`.
-
 `examples/` is a Playwright suite against [JSONPlaceholder](https://jsonplaceholder.typicode.com),
 with one test that fails on purpose:
 
 ```text
-npx playwright test
 playwright-traffic examples/todos.spec.ts:10
 ```
 
