@@ -197,11 +197,14 @@ export async function showTest(
     console.error(list.log.trimEnd());
     return list.code;
   }
-  const listed = [...specs(list.suites)].filter((spec) => isAt(list, spec, file));
-  const above = cursor === undefined ? listed : listed.filter((spec) => spec.line <= cursor);
-  const line = cursor === undefined ? undefined : Math.max(...above.map((spec) => spec.line));
-  // Tests made in a loop share a line, and Playwright runs `file:line` as all of them.
-  const chosen = line === undefined ? above : above.filter((spec) => spec.line === line);
+  let chosen = [...specs(list.suites)].filter((spec) => isAt(list, spec, file));
+  let target = file;
+  if (cursor !== undefined) {
+    const line = Math.max(...chosen.map((spec) => spec.line).filter((line) => line <= cursor));
+    // Tests made in a loop share a line, and Playwright runs `file:line` as all of them.
+    chosen = chosen.filter((spec) => spec.line === line);
+    target = `${file}:${line}`;
+  }
   // Every project would run the test again, e.g. a POST once per browser, so only the first
   // project that has it runs.
   const project = chosen.flatMap((spec) => spec.tests)[0]?.projectName;
@@ -209,7 +212,6 @@ export async function showTest(
     console.error(`playwright-traffic: no test at or above ${location}`);
     return 2;
   }
-  const target = line === undefined ? file : `${file}:${line}`;
 
   const output = await mkdtemp(join(tmpdir(), 'playwright-traffic-'));
   try {
