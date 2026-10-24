@@ -65,6 +65,6 @@ const REASONS: Record<number, string> = {
   511: 'Network Authentication Required',
 };
 
-export function reasonPhrase(code: number): string {
-  return REASONS[code] ?? '';
+export function reasonPhrase(code: number): string | null {
+  return REASONS[code] ?? null;
 }

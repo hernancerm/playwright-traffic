@@ -76,7 +76,7 @@ export function exchange({ request, response, time }: HarExchange): Exchange {
         ? null
         : {
             status: response.status,
-            reason: reasonPhrase(response.status) || null,
+            reason: reasonPhrase(response.status),
             headers: pairs(response.headers),
             body: response.body,
           },
