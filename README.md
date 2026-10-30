@@ -9,6 +9,7 @@ playwright-traffic [--format=<format>] <file>:<line>
 ```
 
 The test run is the nearest one that starts at or above the line, so any line inside a test works.
+A line between tests (a helper, a hook, a blank line) runs the test above it.
 Without `:<line>`, every test in the file runs.
 
 ```ts
