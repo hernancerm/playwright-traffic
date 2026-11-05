@@ -15,6 +15,7 @@ npm install -g playwright-traffic
 ```text
 playwright-traffic [--format=json|markdown+vim-folds] <file>[:<line>]
 playwright-traffic [--format=json|markdown+vim-folds] --title=<title> <file>
+playwright-traffic init
 ```
 
 - Runs the nearest test that starts at or above the line. Without `:<line>`, every test in the file runs.
@@ -65,24 +66,15 @@ Sample output:
 
 ## Setup
 
-A bare project needs only `@playwright/test` and a config. In a new directory:
+To start from an empty folder, run `init` in it:
 
 ```sh
-npm init -y
-npm install -D @playwright/test
+playwright-traffic init
 ```
 
-`playwright.config.ts`:
-
-```ts
-import { defineConfig } from '@playwright/test';
-
-export default defineConfig({
-  testDir: './tests',
-});
-```
-
-`tests/todos.spec.ts`:
+It creates `package.json`, installs `@playwright/test` and `@types/node`, and writes a
+`playwright.config.ts` that finds tests anywhere in the folder and a `tsconfig.json` for the
+editor. It skips any of these that is already there. Then write a test, e.g. `todos.spec.ts`:
 
 ```ts
 import { test } from '@playwright/test';
@@ -93,8 +85,8 @@ test('get-todo', async ({ request }) => {
 ```
 
 ```sh
-playwright-traffic tests/todos.spec.ts:3
-playwright-traffic --title=get-todo tests/todos.spec.ts
+playwright-traffic todos.spec.ts:3
+playwright-traffic --title=get-todo todos.spec.ts
 ```
 
 ## Contributing

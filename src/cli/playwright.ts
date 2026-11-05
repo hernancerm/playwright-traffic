@@ -13,7 +13,7 @@ import { exchange, type Exchange, type HarHeader, type Output } from './output.t
 
 const run = promisify(execFile);
 
-const CONFIGS = ['playwright.config.ts', 'playwright.config.js', 'playwright.config.mjs'];
+export const CONFIGS = ['playwright.config.ts', 'playwright.config.js', 'playwright.config.mjs'];
 
 /** The nearest directory above `file` with a Playwright config, which is where npx must run. */
 async function projectRoot(file: string): Promise<string | undefined> {
@@ -209,7 +209,9 @@ export async function showTest(
   const file = resolve(match ? match[1] : location);
   const root = await projectRoot(file);
   if (root === undefined) {
-    console.error(`playwright-traffic: no ${CONFIGS[0]} above ${file}`);
+    console.error(
+      `playwright-traffic: no ${CONFIGS[0]} above ${file}, run playwright-traffic init to create one`,
+    );
     return 2;
   }
   let pick: Pick | undefined;

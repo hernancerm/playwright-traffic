@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `-v, --version` prints the version.
 - `-t, --title=<title>` runs the test with that exact title instead of the one at a line.
+- `init` makes the current folder a Playwright project: `package.json`, `@playwright/test`,
+  `@types/node`, a `playwright.config.ts` and a `tsconfig.json`, skipping what is already there.
+- With no `playwright.config.ts` above the file, the error suggests `playwright-traffic init`.
 
 ### Changed
 

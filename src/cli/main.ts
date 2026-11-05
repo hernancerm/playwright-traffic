@@ -3,6 +3,7 @@
 
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
+import { init } from './init.ts';
 import { markdown } from './markdown.ts';
 import type { Output } from './output.ts';
 import { showTest } from './playwright.ts';
@@ -17,8 +18,11 @@ const USAGE = `playwright-traffic: show the requests a Playwright test sends.
 Usage:
   playwright-traffic [--format=<format>] <file.ts>:<line>
   playwright-traffic [--format=<format>] --title=<title> <file.ts>
+  playwright-traffic init
 
   Runs the nearest test at or above <line>, or the test titled <title>, and prints its requests.
+  init makes the current folder a Playwright project: package.json, @playwright/test,
+  @types/node, playwright.config.ts and tsconfig.json, skipping what is already there.
 
 Options:
   --format=json                 one JSON object, e.g. to pipe to jq (default)
@@ -60,6 +64,10 @@ async function main(args: string[]): Promise<number> {
   if (location === undefined) {
     console.error(USAGE);
     return 2;
+  }
+  // A test file ends in .ts, so it never collides with init.
+  if (location === 'init') {
+    return await init(process.cwd());
   }
   if (values.title !== undefined && /:\d+$/.test(location)) {
     console.error('playwright-traffic: --title and :<line> both pick a test, give one');
