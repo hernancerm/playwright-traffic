@@ -13,14 +13,15 @@ const FORMATS: Record<string, (output: Output) => string> = {
 
 const USAGE = `playwright-traffic: show the requests a Playwright test sends.
 
+Usage:
   playwright-traffic [--format=<format>] <file.ts>:<line>
-      run the nearest test at or above the line, print its requests
 
-  --format=json                 (default) one JSON object, e.g. to pipe to jq
+  Runs the nearest test at or above <line> and prints its requests.
+
+Options:
+  --format=json                 one JSON object, e.g. to pipe to jq (default)
   --format=markdown+vim-folds   markdown, details in Vim fold markers (:h fold-marker)
-
-  playwright-traffic ./todos.spec.ts:12 | jq
-`;
+  -h, --help                    show this help`;
 
 async function main(args: string[]): Promise<number> {
   let parsed;
@@ -40,9 +41,13 @@ async function main(args: string[]): Promise<number> {
   const { values, positionals } = parsed;
   const [location] = positionals;
 
-  if (values.help || location === undefined) {
+  if (values.help) {
     console.log(USAGE);
-    return values.help ? 0 : 2;
+    return 0;
+  }
+  if (location === undefined) {
+    console.error(USAGE);
+    return 2;
   }
   const format = FORMATS[values.format];
   if (format === undefined) {
