@@ -1,6 +1,14 @@
 # playwright-traffic
 
-Runs the Playwright test nearest to `file:line` and prints what it sent and got back, as JSON.
+Send HTTP requests from a Playwright test and read exactly what went over the wire: method, URL,
+headers and body, both ways. Made to be comfortable for people and for LLMs alike.
+
+- **For LLMs and scripts:** `--format=json` prints one JSON object, easy to parse or pipe to `jq`.
+- **For people:** `--format=markdown+vim-folds` prints a readable summary, with details folded
+  away and a curl command for each request.
+
+Requests are plain Playwright tests, so they live in your repo, take variables and loops, and run
+the same for you and for an agent.
 
 ## Installation
 
