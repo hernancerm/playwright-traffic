@@ -1,14 +1,11 @@
 # playwright-traffic
 
-Send HTTP requests from a Playwright test and read exactly what went over the wire: method, URL,
-headers and body, both ways. Made to be comfortable for people and for LLMs alike.
+Send HTTP requests from a Playwright test and read what went over the wire. Made to be comfortable for people and for LLMs alike.
 
+- **For people:** `--format=markdown+vim-folds` prints a summary intended for a Neovim/Vim buf with `:set fdm=marker`.
 - **For LLMs and scripts:** `--format=json` prints one JSON object, easy to parse or pipe to `jq`.
-- **For people:** `--format=markdown+vim-folds` prints a readable summary, with details folded
-  away and a curl command for each request.
 
-Requests are plain Playwright tests, so they live in your repo, take variables and loops, and run
-the same for you and for an agent.
+Requests are plain Playwright tests; they run the same for you and for an agent.
 
 ## Installation
 
@@ -93,8 +90,8 @@ test('get-todo', async ({ request }) => {
 ```
 
 ```sh
-playwright-traffic todos.spec.ts:3
 playwright-traffic --title=get-todo todos.spec.ts
+playwright-traffic todos.spec.ts:3
 ```
 
 ## Contributing
