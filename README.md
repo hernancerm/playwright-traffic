@@ -94,6 +94,15 @@ playwright-traffic --title=get-todo todos.spec.ts
 playwright-traffic todos.spec.ts:3
 ```
 
+## Agent skill
+
+A [skill](./skills/playwright-traffic/SKILL.md) teaches coding agents when and how to use
+`playwright-traffic`. Install it with [skills](https://github.com/vercel-labs/skills):
+
+```sh
+npx skills add hernancerm/playwright-traffic
+```
+
 ## Contributing
 
 I welcome issues requesting any behavior change. However, please do not submit a PR unless it's for
