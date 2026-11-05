@@ -1,8 +1,8 @@
 # playwright-traffic
 
-Send HTTP requests from a Playwright test and read what went over the wire. Made to be comfortable for people and for LLMs alike.
+Send HTTP requests from a Playwright test and read what went over the wire. Made for people and for LLMs alike.
 
-- **For people:** `--format=markdown+vim-folds` prints a summary intended for a Neovim/Vim buf with `:set fdm=marker`.
+- **For people:** `--format=markdown+vim-folds` prints info, intended for a `fdm=marker` Vim buf.
 - **For LLMs and scripts:** `--format=json` prints one JSON object, easy to parse or pipe to `jq`.
 
 Requests are plain Playwright tests; they run the same for you and for an agent.
