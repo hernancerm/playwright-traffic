@@ -48,13 +48,13 @@ Sample output:
             "method": "POST",
             "url": "https://jsonplaceholder.typicode.com/todos",
             "headers": [["content-type", "application/json"]],
-            "body": "{\"title\":\"Buy milk\",\"completed\":false}"
+            "body": "{\"title\":\"Buy milk\"}"
           },
           "response": {
             "status": 201,
             "reason": "Created",
             "headers": [["content-type", "application/json; charset=utf-8"]],
-            "body": "{\n  \"title\": \"Buy milk\",\n  \"completed\": false,\n  \"id\": 201\n}"
+            "body": "{\n  \"title\": \"Buy milk\",\n  \"id\": 201\n}"
           },
           "time": 142
         }
