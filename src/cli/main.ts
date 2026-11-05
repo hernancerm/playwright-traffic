@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /** The `playwright-traffic` command. */
 
+import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { markdown } from './markdown.ts';
 import type { Output } from './output.ts';
@@ -21,7 +22,8 @@ Usage:
 Options:
   --format=json                 one JSON object, e.g. to pipe to jq (default)
   --format=markdown+vim-folds   markdown, details in Vim fold markers (:h fold-marker)
-  -h, --help                    show this help`;
+  -h, --help                    show this help
+  -v, --version                 show the version`;
 
 async function main(args: string[]): Promise<number> {
   let parsed;
@@ -32,6 +34,7 @@ async function main(args: string[]): Promise<number> {
       options: {
         format: { type: 'string', default: 'json' },
         help: { type: 'boolean', short: 'h' },
+        version: { type: 'boolean', short: 'v' },
       },
     });
   } catch (error) {
@@ -43,6 +46,12 @@ async function main(args: string[]): Promise<number> {
 
   if (values.help) {
     console.log(USAGE);
+    return 0;
+  }
+  if (values.version) {
+    // Two levels up from both src/cli/ (run from source) and dist/cli/ (built).
+    const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    console.log(pkg.version);
     return 0;
   }
   if (location === undefined) {
