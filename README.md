@@ -14,11 +14,14 @@ npm install -g playwright-traffic
 
 ```text
 playwright-traffic [--format=json|markdown+vim-folds] <file>[:<line>]
+playwright-traffic [--format=json|markdown+vim-folds] --title=<title> <file>
 ```
 
 - Runs the nearest test that starts at or above the line. Without `:<line>`, every test in the file runs.
-- Exits `0` if the test passed, `1` if it failed, `2` if there is no test at or above the line or
-  no `playwright.config.ts` above the file. Only the output goes to stdout, errors go to stderr.
+- `-t, --title` runs the test with that exact title, e.g. `--title=create-todo`. When two describes
+  have a test with that title, it exits `2` and lists their lines, so you can pick one with `:<line>`.
+- Exits `0` if the test passed, `1` if it failed, `2` if no test matches the line or title, or
+  there is no `playwright.config.ts` above the file. Only the output goes to stdout, errors go to stderr.
 - The file must be saved, since Playwright reads it from disk.
 
 Sample output:
@@ -63,6 +66,7 @@ Sample output:
 ## Setup
 
 A bare project needs only `@playwright/test` and a config. In a new directory:
+
 ```sh
 npm init -y
 npm install -D @playwright/test
@@ -90,8 +94,8 @@ test('get-todo', async ({ request }) => {
 
 ```sh
 playwright-traffic tests/todos.spec.ts:3
+playwright-traffic --title=get-todo tests/todos.spec.ts
 ```
-
 
 ## Contributing
 

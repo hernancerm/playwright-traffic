@@ -16,12 +16,14 @@ const USAGE = `playwright-traffic: show the requests a Playwright test sends.
 
 Usage:
   playwright-traffic [--format=<format>] <file.ts>:<line>
+  playwright-traffic [--format=<format>] --title=<title> <file.ts>
 
-  Runs the nearest test at or above <line> and prints its requests.
+  Runs the nearest test at or above <line>, or the test titled <title>, and prints its requests.
 
 Options:
   --format=json                 one JSON object, e.g. to pipe to jq (default)
   --format=markdown+vim-folds   markdown, details in Vim fold markers (:h fold-marker)
+  -t, --title=<title>           the test's exact title, without its describes
   -h, --help                    show this help
   -v, --version                 show the version`;
 
@@ -33,6 +35,7 @@ async function main(args: string[]): Promise<number> {
       allowPositionals: true,
       options: {
         format: { type: 'string', default: 'json' },
+        title: { type: 'string', short: 't' },
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
       },
@@ -58,6 +61,10 @@ async function main(args: string[]): Promise<number> {
     console.error(USAGE);
     return 2;
   }
+  if (values.title !== undefined && /:\d+$/.test(location)) {
+    console.error('playwright-traffic: --title and :<line> both pick a test, give one');
+    return 2;
+  }
   const format = FORMATS[values.format];
   if (format === undefined) {
     const known = Object.keys(FORMATS).join(', ');
@@ -65,7 +72,7 @@ async function main(args: string[]): Promise<number> {
     return 2;
   }
 
-  return await showTest(location, format);
+  return await showTest(location, format, values.title);
 }
 
 process.exitCode = await main(process.argv.slice(2));

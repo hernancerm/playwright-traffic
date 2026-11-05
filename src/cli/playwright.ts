@@ -171,22 +171,52 @@ function isAt(report: Report, spec: Spec, file: string): boolean {
   return resolve(report.config.rootDir, spec.file) === file;
 }
 
+/** Which test to run: the nearest at or above `line`, or the one titled `title`. */
+export type Pick = { line: number } | { title: string };
+
+/**
+ * The line of the test that `pick` names among `specs`, or why there is none. Tests made in a
+ * loop share a line, and Playwright runs `file:line` as all of them, so a line is enough.
+ */
+export function pickLine(specs: { title: string; line: number }[], pick: Pick): number | string {
+  if ('line' in pick) {
+    const lines = specs.map((spec) => spec.line).filter((line) => line <= pick.line);
+    return lines.length > 0 ? Math.max(...lines) : `no test at or above line ${pick.line}`;
+  }
+  const lines = [...new Set(specs.filter((spec) => spec.title === pick.title).map((s) => s.line))];
+  if (lines.length === 0) {
+    return `no test titled ${pick.title}`;
+  }
+  // Same title in two describes. Rare enough that the line is the way to pick one.
+  if (lines.length > 1) {
+    return `${pick.title} is at lines ${lines.join(', ')}, use <file.ts>:<line>`;
+  }
+  return lines[0];
+}
+
 /**
  * `location` is `file:line`, and the test run is the nearest one at or above that line, like
- * vim-test's nearest: any line inside a test names it. Without a line, every test in the file
- * runs. `format` turns the requests into what is printed.
+ * vim-test's nearest: any line inside a test names it. With `title` instead of a line, the test
+ * run is the one with that exact title. With neither, every test in the file runs. `format`
+ * turns the requests into what is printed.
  */
 export async function showTest(
   location: string,
   format: (output: Output) => string,
+  title?: string,
 ): Promise<number> {
   const match = /^(.*):(\d+)$/.exec(location);
   const file = resolve(match ? match[1] : location);
-  const cursor = match ? Number(match[2]) : undefined;
   const root = await projectRoot(file);
   if (root === undefined) {
     console.error(`playwright-traffic: no ${CONFIGS[0]} above ${file}`);
     return 2;
+  }
+  let pick: Pick | undefined;
+  if (match) {
+    pick = { line: Number(match[2]) };
+  } else if (title !== undefined) {
+    pick = { title };
   }
 
   // Listing runs nothing, and gives each test's line.
@@ -197,9 +227,12 @@ export async function showTest(
   }
   let chosen = [...specs(list.suites)].filter((spec) => isAt(list, spec, file));
   let target = file;
-  if (cursor !== undefined) {
-    const line = Math.max(...chosen.map((spec) => spec.line).filter((line) => line <= cursor));
-    // Tests made in a loop share a line, and Playwright runs `file:line` as all of them.
+  if (pick !== undefined) {
+    const line = pickLine(chosen, pick);
+    if (typeof line === 'string') {
+      console.error(`playwright-traffic: ${line}`);
+      return 2;
+    }
     chosen = chosen.filter((spec) => spec.line === line);
     target = `${file}:${line}`;
   }
@@ -207,7 +240,7 @@ export async function showTest(
   // project that has it runs.
   const project = chosen.flatMap((spec) => spec.tests)[0]?.projectName;
   if (project === undefined) {
-    console.error(`playwright-traffic: no test at or above ${location}`);
+    console.error(`playwright-traffic: no test in ${file}`);
     return 2;
   }
 

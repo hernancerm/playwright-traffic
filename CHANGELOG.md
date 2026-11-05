@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `-v, --version` prints the version.
+- `-t, --title=<title>` runs the test with that exact title instead of the one at a line.
 
 ### Changed
 
