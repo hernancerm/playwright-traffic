@@ -4,12 +4,10 @@ Runs the Playwright test nearest to `file:line` and prints what it sent and got 
 
 ## Installation
 
-Requires Node >= 22.18, `@playwright/test` >= 1.50 in the project, and `unzip` on `PATH`. Not on
-npm yet, so clone the repo and add an alias (nothing to build):
+Requires Node >= 22.18, `@playwright/test` >= 1.50 in the project, and `unzip` on `PATH`.
 
 ```sh
-git clone https://github.com/hernancerm/playwright-traffic.git ~/dev/repos/playwright-traffic
-alias playwright-traffic='node ~/dev/repos/playwright-traffic/src/cli/main.ts'
+npm install -g playwright-traffic
 ```
 
 ## Usage
@@ -18,15 +16,12 @@ alias playwright-traffic='node ~/dev/repos/playwright-traffic/src/cli/main.ts'
 playwright-traffic [--format=json|markdown+vim-folds] <file>[:<line>]
 ```
 
-- Runs the nearest test that starts at or above the line. A line between tests (a helper, a hook,
-  a blank line) runs the test above it. Without `:<line>`, every test in the file runs.
+- Runs the nearest test that starts at or above the line. Without `:<line>`, every test in the file runs.
 - Exits `0` if the test passed, `1` if it failed, `2` if there is no test at or above the line or
   no `playwright.config.ts` above the file. Only the output goes to stdout, errors go to stderr.
-- Only requests sent through `request` are shown, not the ones a page loads. They come from the
-  trace, so headers Playwright adds itself show up.
-- Only the first project that has the test runs. Its setup dependencies run too, but their
-  requests are left out.
 - The file must be saved, since Playwright reads it from disk.
+
+Sample output:
 
 ```json
 {
@@ -61,11 +56,42 @@ playwright-traffic [--format=json|markdown+vim-folds] <file>[:<line>]
 }
 ```
 
-`body` and `response` are `null` when there was none. `time` is in milliseconds. The top-level
-`errors` are the ones outside any test, e.g. a failed `globalSetup`.
+- `body` and `response` are `null` when there was none.
+- The top-level `errors` are the ones outside any test, e.g. a failed `globalSetup`.
+- `time` is in milliseconds.
 
-`--format=markdown+vim-folds` prints a heading per request (`# POST /todos · 201 Created · 142 ms ·
-83 B`) with the bodies, headers and a `curl` command folded under it.
+## Setup
+
+A bare project needs only `@playwright/test` and a config. In a new directory:
+```sh
+npm init -y
+npm install -D @playwright/test
+```
+
+`playwright.config.ts`:
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+});
+```
+
+`tests/todos.spec.ts`:
+
+```ts
+import { test } from '@playwright/test';
+
+test('get-todo', async ({ request }) => {
+  await request.get('https://jsonplaceholder.typicode.com/todos/1');
+});
+```
+
+```sh
+playwright-traffic tests/todos.spec.ts:3
+```
+
 
 ## Contributing
 
